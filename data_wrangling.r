@@ -3,6 +3,8 @@ library(GGally)
 library(skimr)
 library(ggplots2)
 library(gridExtra)
+library(corrplot)
+library(psych)
 
 jeffsData = modelingData%>%
   select(49:73)
@@ -97,3 +99,4 @@ pairs(jeffsData)
 
 modelingData = modelingData %>% mutate(timestamp = as.Date(timestamp, origin="1899-12-30"))
 
+cor(jeffsData)
