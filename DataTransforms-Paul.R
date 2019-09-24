@@ -15,9 +15,8 @@ p_load(lmtest
 modelingData = modelingData %>% mutate(timestamp = as.Date(timestamp, origin="1899-12-30"))
 tryFormats = c("%Y-%m-%d", "%Y/%m/%d")
 
-setwd("C:/Users/Pablo/Desktop/AppliedStatsProject1")
-df <- read.csv("modelingData.csv",  header=T, sep=",", strip.white=T)
-#price_doc = SalePrice
+df <- read.csv("./modelingData.csv",  header=T, sep=",", strip.white=T)
+
 colnames(df)
 
 na_count <- sapply(df, function(cnt) sum(length(which(is.na(cnt)))))
