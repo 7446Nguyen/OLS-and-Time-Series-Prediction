@@ -9,13 +9,17 @@ p_load(lmtest
        ,olsrr
        ,caret
        ,multcomp
-       ,ggthemes)
+       ,ggthemes
+       ,MissMech) #MissMech to test if data missing completely at random with ?TestMCARNormality
 
 #format dates:
 modelingData = modelingData %>% mutate(timestamp = as.Date(timestamp, origin="1899-12-30"))
 tryFormats = c("%Y-%m-%d", "%Y/%m/%d")
 
 df <- read.csv("./modelingData.csv",  header=T, sep=",", strip.white=T)
+
+#TestMCARNormality(df, imputation.number = 5333, imputed.data = df$life_sq, alpha = 0.05) # can only use non NAs to test NAs
+
 
 colnames(df)
 
@@ -27,9 +31,14 @@ na_count
 ########################################################################## 
 #1
 df$floor <- df$floor %>% replace_na(0) # Replace NA in Floor (this is for apts.; not all bldgs are apts.)
+hist(df$floor,breaks=500) # this looks better normal
 
 #2
 df$hospital_beds_raion <- df$hospital_beds_raion %>% replace_na(0) # Replace NA in hospital beds with zero
+hist(df$hospital_beds_raion,breaks = 100)
+hist(logb(df$hospital_beds_raion, exp(3)),breaks = 50)
+
+df$hospital_beds_raion <- logb(df$hospital_beds_raion, exp(3))
 
 #3
 # round materials to get the average material used, grouped by product type:
@@ -42,6 +51,7 @@ df2.maxfl <- df[which(!is.na(df$max_floor)),]
 maxfl.Mean <- data.frame(df2.maxfl$max_floor/df2.maxfl$full_sq)
 colnames(maxfl.Mean) <- "percentofFloor"
 maxflMultiplier <- mean(head(maxfl.Mean$percentofFloor,7000)) # roughly 7k NaNs
+#max_fl is position 6, full_sq is position 3:
 df[which(is.na(df$max_floor)),6] <- df[which(is.na(df$max_floor)),3]*maxflMultiplier
 
 hist(df$max_floor, breaks=100)
@@ -54,6 +64,7 @@ df2.lifesq <- df[which(!is.na(df$life_sq)),]
 life.Mean <- data.frame(df2.lifesq$life_sq/df2.lifesq$full_sq)
 colnames(life.Mean) <- "percentofFull"
 lifesqMultiplier <- mean(head(life.Mean$percentofFull,11000)) # roughly 11k NAs
+#life_sq is position 4, full_sq is position 3:
 df[which(is.na(df$life_sq)),4] <- df[which(is.na(df$life_sq)),3]*lifesqMultiplier
 
 hist(df$life_sq, breaks=100)
@@ -72,19 +83,19 @@ df2.kitchsq <- df[which(!is.na(df$kitch_sq)),]
 kitch.Mean <- data.frame(df2.kitchsq$kitch_sq/df2.kitchsq$full_sq)
 colnames(kitch.Mean) <- "percentofFull"
 kitchsqMultiplier <- mean(head(kitch.Mean$percentofFull,7000)) #roughly 7k NAs
+
+# below is a logical transform to impute the NA values, but will still need transformation as an entire predictor
+#kitch_sq is position 10, full_sq is position 3:
 df[which(is.na(df$kitch_sq)),10] <- df[which(is.na(df$kitch_sq)),3]*kitchsqMultiplier
 
-hist(log(df$kitch_sq), breaks=50)
-hist(log(df$kitch_sq+1), breaks=50)
+hist(df$kitch_sq, breaks=1000)
+# The log transformation yields the best result across all levels of breaks, indicating the closest adherence to normality
+# While unorthodox, this may yiled better fits in the modeling phase
+hist(sqrt(df$kitch_sq^1/16+1), breaks=1000)
+df$kitch_sq <- sqrt(df$kitch_sq^1/16+1)
+
+
 ##########
-
-#7 
-########## drop build_year from model
-# Count of build_year values equal to NA
-nrow(df[which(is.na(df$build_year)),])/nrow(df)
-# NA build_year values total roughly 45% so imputation is too risky for inclusion. Thus, dropping build_year from model
-df = subset(df, select = -c(build_year))
-
 
 #8 
 # round materials to get the average number of rooms, grouped by floor count, full_sq:
@@ -92,6 +103,7 @@ df <- df %>% group_by(full_sq) %>% mutate(num_room = na.mean(num_room))
 #those houses with full_sq=0 will have 0 for num_room, life_sq, etc.
 
 nrow(df[which(is.na(df$build_year)),])/nrow(df)
+
 
 #########################################################################################
 # at this point, there are some NA values in columns that aren't obvious using domain knowledge
@@ -148,11 +160,14 @@ df.preK.no.NA <- df[which(!is.na(df$preschool_quota)),]
 preK.Mean <- data.frame(df.preK.no.NA$preschool_quota/df.preK.no.NA$X0_6_all)
 colnames(preK.Mean) <- "percentofFloor"
 preKquotaMultiplier <- mean(head(preK.Mean$percentofFloor,5000)) # roughly 5k NaNs
-df[which(is.na(df$preschool_quota)),6] <- df[which(is.na(df$preschool_quota)),3]*preKquotaMultiplier
+#preschool_quota is position 16, x0_6_all is position 26:
+df[which(is.na(df$preschool_quota)),16] <- df[which(is.na(df$preschool_quota)),26]*preKquotaMultiplier
 
 par(mfrow=c(2,1))
 hist(df$preschool_quota, breaks=100)
-hist(log(df$preschool_quota), breaks=100) #log does not appear needed
+hist(log(df$preschool_quota), breaks=100) #log does not appear useful
+hist(sqrt(df$preschool_quota), breaks = 100) #the square root transformation looks better than log or non-transformed
+df$preschool_quota <- sqrt(df$preschool_quota)
 #reset output to 1x1
 par(mfrow=c(1,1))
 ##########
@@ -177,7 +192,6 @@ par(mfrow=c(1,1))
 ##########
 
 
-
 #######################################################################################################################
 #####################################End of Naive ("high-risk") Imputations############################################
 #####################################End of Naive ("high-risk") Imputations############################################
@@ -185,9 +199,19 @@ par(mfrow=c(1,1))
 #####################################End of Naive ("high-risk") Imputations############################################
 #######################################################################################################################
 
+#11
+# Build_Year
+#7 
+########## drop build_year from model
+# Count of build_year values equal to NA
+nrow(df[which(is.na(df$build_year)),])/nrow(df)
 
+# Build_year has no strong correlation with other non-NA values using the correlation plot
+# Therefore, imputation would be arbitrary
+df.buildYr <- corDF.ordered[which(corDF.ordered$row=="build_year"),]
 
-
+# NA build_year values also total roughly 45% so imputation is too risky for inclusion. Thus, dropping build_year from model
+df = subset(df, select = -c(build_year))
 
 
 #######################################################################################################################
