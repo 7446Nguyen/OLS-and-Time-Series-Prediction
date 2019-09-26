@@ -92,13 +92,5 @@ df$big_market_raion <- dplyr::recode(df$big_market_raion,  "No" = 0, "Yes"= 1)
 df$railroad_terminal_raion <- dplyr::recode(df$railroad_terminal_raion,  "No" = 0, "Yes"= 1)
 ##########
 
-######################################
-##############            ###########
-####             end              ##    oh
-###              of              ##     like
-##            transforms        ##      a
-###########            ##########       rock
-################################
-
 ############################## conversion to numeric and factor only for modeling consistency #############################
 df <- df %>% mutate_if(is.integer, as.numeric) %>% mutate_if(is.character, as.factor) %>% data.frame()

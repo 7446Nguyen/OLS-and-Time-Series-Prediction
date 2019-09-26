@@ -313,7 +313,7 @@ hist(log(df$full_sq), breaks=100) #normal approximation so will log-transform th
 df$full_sq <- log(df$full_sq) # log transform
 
 
-##################################################################### colinearity/covariance
+#################################################################### colinearity/covariance
 
 
 df %>%keep(is.numeric) %>%
@@ -326,7 +326,7 @@ df %>%keep(is.numeric) %>%
   ggtitle("Numeric Predictor Variables, Post Log-Transforming")
 
 
-#####################################################################
+####################################################################
 
 
 lm.buildyr <- lm(price_doc~build_year,data=df)
