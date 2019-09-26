@@ -18,6 +18,7 @@ tryFormats = c("%Y-%m-%d", "%Y/%m/%d")
 
 df <- read.csv("./modelingData.csv",  header=T, sep=",", strip.white=T)
 
+
 #TestMCARNormality(df, imputation.number = 5333, imputed.data = df$life_sq, alpha = 0.05) # can only use non NAs to test NAs
 
 
@@ -28,7 +29,8 @@ na_count
 
 ########################################################################## 
 ######################## Imputing NAs##################################### 
-########################################################################## 
+##########################################################################
+
 #1
 df$floor <- df$floor %>% replace_na(0) # Replace NA in Floor (this is for apts.; not all bldgs are apts.)
 hist(df$floor,breaks=500) # this looks better normal
@@ -39,15 +41,28 @@ hist(df$hospital_beds_raion,breaks = 100)
 hist(logb(df$hospital_beds_raion, exp(3)),breaks = 50)
 
 df$hospital_beds_raion <- logb(df$hospital_beds_raion, exp(3))
+hist(df$hospital_beds_raion, breaks = 50)
+
+#if NA, then no. Otherwise, Yes############################################################################################################
+#if NA, then no. Otherwise, Yes############################################################################################################
+
+df$material <- dplyr::recode(df$material, `1` = "Material_1",`2` = "Material_2",`3` = "Material_3"
+                             ,`4` = "Material_4",`5` = "Material_5",`6` = "Material_6") %>% as.factor()
+
 
 #3
 # round materials to get the average material used, grouped by product type:
 df <- df %>% group_by(product_type) %>% mutate(material = na.mean(material))
 df$material <- round(df$material) # round because this will be converted to factor
+# Recoding to qualitative because these are not best represented as numeric (material 2 is not expressly twice
+# as good as material 1, for example, so this is a naive assumption)
+df$material <- dplyr::recode(df$material, `1` = "Material_1",`2` = "Material_2",`3` = "Material_3"
+                             ,`4` = "Material_4",`5` = "Material_5",`6` = "Material_6") %>% as.factor()
 
 #4
 ########## replace NA max_flor with the proportion of full_sq to max_floor where max_floor not null
 df2.maxfl <- df[which(!is.na(df$max_floor)),]
+# using domain knowledge that floor count depends on full square footage
 maxfl.Mean <- data.frame(df2.maxfl$max_floor/df2.maxfl$full_sq)
 colnames(maxfl.Mean) <- "percentofFloor"
 maxflMultiplier <- mean(head(maxfl.Mean$percentofFloor,7000)) # roughly 7k NaNs
@@ -57,14 +72,13 @@ df[which(is.na(df$max_floor)),6] <- df[which(is.na(df$max_floor)),3]*maxflMultip
 hist(df$max_floor, breaks=100)
 ##########
 
-
 #5
 ########## replace NA life_sq with the proportion of full_sq to life_sq where life_sq not null
 df2.lifesq <- df[which(!is.na(df$life_sq)),]
 life.Mean <- data.frame(df2.lifesq$life_sq/df2.lifesq$full_sq)
 colnames(life.Mean) <- "percentofFull"
 lifesqMultiplier <- mean(head(life.Mean$percentofFull,11000)) # roughly 11k NAs
-#life_sq is position 4, full_sq is position 3:
+#life_sq is position 4, full_sq is position 3. Living area depends on full area
 df[which(is.na(df$life_sq)),4] <- df[which(is.na(df$life_sq)),3]*lifesqMultiplier
 
 hist(df$life_sq, breaks=100)
@@ -88,22 +102,31 @@ kitchsqMultiplier <- mean(head(kitch.Mean$percentofFull,7000)) #roughly 7k NAs
 #kitch_sq is position 10, full_sq is position 3:
 df[which(is.na(df$kitch_sq)),10] <- df[which(is.na(df$kitch_sq)),3]*kitchsqMultiplier
 
-hist(df$kitch_sq, breaks=1000)
+par(mfrow=c(2,2))
+hist(log(df$kitch_sq + 1), breaks=100, xlim=c(0,10))
+hist(log(df$kitch_sq), breaks=100, xlim=c(0,10))
 # The log transformation yields the best result across all levels of breaks, indicating the closest adherence to normality
 # While unorthodox, this may yiled better fits in the modeling phase
-hist(sqrt(df$kitch_sq^1/16+1), breaks=1000)
-df$kitch_sq <- sqrt(df$kitch_sq^1/16+1)
+hist(sqrt(df$kitch_sq^1/16+1), breaks=100, xlim=c(1,2))
 
+df$kitch_sq <- sqrt(df$kitch_sq^1/16+1)
+par(mfrow=c(1,1)) # resetting frame for downstream graphing
 
 ##########
 
 #8 
 # round materials to get the average number of rooms, grouped by floor count, full_sq:
-df <- df %>% group_by(full_sq) %>% mutate(num_room = na.mean(num_room))
+df2.numRm <- df[which(!is.na(df$num_room)),]
+numRm.Mean <- data.frame(df2.numRm$num_room/df2.numRm$full_sq)
+colnames(numRm.Mean) <- "percentofFullrm"
+numRmMultiplier <- mean(head(numRm.Mean$percentofFullrm,7000)) #roughly 7k NAs
+df[which(is.na(df$num_room)),9] <- df[which(is.na(df$num_room)),3]*numRmMultiplier # leave continuous for more descriptive metrics
+
 #those houses with full_sq=0 will have 0 for num_room, life_sq, etc.
-
-nrow(df[which(is.na(df$build_year)),])/nrow(df)
-
+hist(df$num_room, breaks = 500)  (right skewed)########################*****************************################$$$$$$$$$$$$
+max(df$num_room)
+df[!df$num_room > 30,]
+df <- df[which(df$num_room < 30),] # remove the outlier 192.6242
 
 #########################################################################################
 # at this point, there are some NA values in columns that aren't obvious using domain knowledge
@@ -127,10 +150,15 @@ flattenCorrMatrix <- function(cormatrix, pmatrix) {
     p = pmatrix[ut]
   )
 }
+options(scipen=999)
+options(max.print=100000) 
 
 #See what variables are correlated with eachother, p-values
 correlation.matrix <- rcorr(as.matrix(df.numeric.no.NA))
 corDF <- data.frame(flattenCorrMatrix(correlation.matrix$r, correlation.matrix$P))
+view(correlation.matrix)
+correlation.matrix[which(correlation.matrix =="price_doc"),]
+corDF.ordered[which(corDF.ordered$row=="price_doc"),]
 
 #Order the correlation matrix to show the highest correlated
 corDF.ordered <- data.frame(corDF[order(-corDF$cor),])
@@ -191,6 +219,12 @@ df$hospital_beds_raion <- log(df$hospital_beds_raion)
 par(mfrow=c(1,1))
 ##########
 
+class(df$build_year)
+plot(nubuildyr$build_year,nubuildyr$price_doc) 
+
+nubuildyr <- df %>% filter(build_year<2019 & build_year>1700)
+df$build_year <- nubuildyr$build_year
+
 
 #######################################################################################################################
 #####################################End of Naive ("high-risk") Imputations############################################
@@ -201,8 +235,7 @@ par(mfrow=c(1,1))
 
 #11
 # Build_Year
-#7 
-########## drop build_year from model
+
 # Count of build_year values equal to NA
 nrow(df[which(is.na(df$build_year)),])/nrow(df)
 
@@ -211,8 +244,38 @@ nrow(df[which(is.na(df$build_year)),])/nrow(df)
 df.buildYr <- corDF.ordered[which(corDF.ordered$row=="build_year"),]
 
 # NA build_year values also total roughly 45% so imputation is too risky for inclusion. Thus, dropping build_year from model
-df = subset(df, select = -c(build_year))
+df <- subset(df, select = -c(build_year))
 
+#12
+hist(df$raion_popul, breaks = 1000)
+hist(logb(df$raion_popul,exp(7)), breaks=1000) 
+hist(sqrt(df$raion_popul), breaks=1000)
+
+hist(sqrt(df$office_raion^1/10), breaks = 10)
+df$office_raion <- sqrt(df$office_raion^1/10)
+
+df$big_market_raion <- dplyr::recode(df$big_market_raion,  "No" = 0, "Yes"= 1)
+
+df$railroad_terminal_raion <- dplyr::recode(df$railroad_terminal_raion,  "No" = 0, "Yes"= 1)
+
+# This is better non-transformed. Also, the range doesn't warrant transformation compared to the data overall
+hist(log(df$shopping_centers_raion), breaks = 10)
+
+hist(log(df$children_school), breaks = 100)
+hist(sqrt(df$children_school), breaks = 100)
+hist(df$children_school, breaks = 100) # this looks the best, but is not great. No touchy.
+hist(df$children_preschool,breaks = 100) #similar to children school...no touchy.
+
+hist(log(df$indust_part), breaks = 100)
+hist(sqrt(df$indust_part^1/6), breaks = 100)
+hist(df$indust_part, breaks = 100) # also, no touchy
+
+hist(sqrt(df$green_zone_part), breaks = 100)
+hist(df$green_zone_part, breaks = 100) # nothing looks great- no transformations applied
+
+hist(df$full_sq, breaks = 1000)
+hist(log(df$full_sq+1), breaks=1000)
+range(log(df$full_sq+1.1))
 
 #######################################################################################################################
 #######################################################################################################################
