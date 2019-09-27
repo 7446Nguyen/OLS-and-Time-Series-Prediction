@@ -99,4 +99,7 @@ pairs(jeffsData)
 
 modelingData = modelingData %>% mutate(timestamp = as.Date(timestamp, origin="1899-12-30"))
 
-cor(jeffsData)
+res1 <- cor.mtest(jeffsData, conf.level = .95)
+cplot = cor(jeffsData)
+corrplot(cplot, p.mat = res1$p, sig.level = 0.05, method = "number")
+
