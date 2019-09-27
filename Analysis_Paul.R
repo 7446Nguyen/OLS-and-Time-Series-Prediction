@@ -10,7 +10,9 @@ p_load(lmtest
        ,caret
        ,multcomp
        ,ggthemes
-       ,MASS)# for OLS
+       ,MASS# for OLS
+       ,regclass# for VIF
+       )
 
 na_count <- sapply(df, function(cnt) sum(length(which(is.na(cnt)))))
 na_count
@@ -53,6 +55,10 @@ life.Mean <- data.frame(df2.lifesq$life_sq/df2.lifesq$full_sq)
 colnames(life.Mean) <- "percentofFull"
 lifesqMultiplier <- mean(head(life.Mean$percentofFull,11000))
 df[which(is.na(df$life_sq)),4] <- df[which(is.na(df$life_sq)),3]*lifesqMultiplier
+dishonestLivingSpace <- (df$life_sq - df$full_sq)
+df <- data.frame(dishonestLivingSpace, df)
+df <- df[which(df$dishonestLivingSpace < 0),] #living space shouldn't be greater than the full sq, considering lofts that have shared external bathrooms
+df <- subset(df, select = -c(dishonestLivingSpace)) # remove the counter variable dishonestLivingSpace
 ##########
 
 ########## kithcen sq
@@ -61,6 +67,10 @@ kitch.Mean <- data.frame(df2.kitchsq$kitch_sq/df2.kitchsq$full_sq)
 colnames(kitch.Mean) <- "percentofFull"
 kitchsqMultiplier <- mean(head(kitch.Mean$percentofFull,7000))
 df[which(is.na(df$kitch_sq)),10] <- df[which(is.na(df$kitch_sq)),3]*kitchsqMultiplier
+dishonestKitchens <- (df$kitch_sq - df$full_sq)
+df <- data.frame(dishonestKitchens, df)
+df <- df[which(df$dishonestKitchens < -2),] #kitchen space shouldn't be greater than more than 2 meters less than the full sq
+df <- subset(df, select = -c(dishonestKitchens)) # remove the counter variable dishonestKitchens
 df$kitch_sq <- sqrt(df$kitch_sq^1/16+1)
 ##########
 
@@ -106,6 +116,10 @@ df <- df %>% mutate(railroad_station_walk_min = if_else(is.na(railroad_station_w
 df <- df %>% mutate(ID_railroad_station_walk = if_else(is.na(ID_railroad_station_walk),0,ID_railroad_station_walk))
 ##########
 
+##########
+df <- df[which(!is.na(df$build_count_before_1920)),] #one fell swoop to take out all NA 'build_count_{year range}' rows
+##########
+
 ############################## conversion to numeric and factor only for modeling consistency #############################
 
 df <- df %>% mutate_if(is.integer, as.numeric) %>% mutate_if(is.character, as.factor) %>% data.frame()
@@ -137,10 +151,11 @@ correlation.matrix <- rcorr(as.matrix(df.numeric.no.NA))
 corDF <- data.frame(flattenCorrMatrix(correlation.matrix$r, correlation.matrix$P))
 
 corDF.ordered <- data.frame(corDF[order(-corDF$cor),])
-somewhat.correlated <- corDF[which(corDF$cor >= 0.5),]
+collinear.correlation <- corDF[which(corDF$cor >= 0.75),]
 
-SomewhatCorDF.ordered <- data.frame(somewhat.correlated[order(-somewhat.correlated$cor),])
-SomewhatCorDF.ordered
+collinear.correlation <- data.frame(collinear.correlation[order(-collinear.correlation$cor),])
+#write.csv(colinear.correlation, "Collinear_Correlation_Matrix.csv")
+#write.csv(corDF.ordered, "All_Vars_Correlation_Matrix.csv")
 
 #######################################################################################################################
 ############################################### Correlation Matrix Start ##############################################
@@ -152,7 +167,9 @@ SomewhatCorDF.ordered
 ##########
 
 ########## Forward Selection
-model.forward.Start <- lm(log(price_doc)~.,data = df)
+model.forward.Start <- lm(log(price_doc) ~ ., data = df)
+
+model.end <- lm(log(price_doc) ~ 1, data = df)
 
 # All Variables Model - Forward Selection
 model.Allvar <- lm(log(price_doc) ~ id + timestamp + full_sq +	life_sq + floor + max_floor + material + num_room + kitch_sq + product_type
@@ -167,32 +184,19 @@ model.Allvar <- lm(log(price_doc) ~ id + timestamp + full_sq +	life_sq + floor +
                    + swim_pool_km + ice_rink_km + stadium_km + basketball_km + public_healthcare_km + university_km + workplaces_km
                    + shopping_centers_km + office_km + big_church_km, data = df)
 
-# Adds variable one at a time, starting from nothing
-fit1 <- lm(log(price_doc) ~ ., data=df)
-
-
-fit2 <- lm(log(price_doc) ~ 1, data=df)
-
-model.Forward <- stepAIC(fit2, direction = "forward", trace = F, scope = list(upper=fit1,lower=fit2))
-model.Backward <- stepAIC(fit1, direction = "backward")
-model.Stepwise <- stepAIC(fit2,direction="both",scope=list(upper=fit1,lower=fit2))
-
 #### Forward Selection, first pass
 model.Forward <- stepAIC(model.forward.Start, direction = "forward", trace = F, scope = formula(model.Allvar))
-?stepAIC
 summary(model.Forward)
 model.Forward$anova
 
 
-########## Backward Elimination
+########## Backward Elimination, first pass
 model.Backward <- stepAIC(model.Allvar, direction = "backward", trace = F, scope = formula(model.forward.Start))
-
 summary(model.Backward)
 model.Backward$anova
 
-########## Stepwise Selection
+########## Stepwise Selection, first pass
 model.Stepwise <- stepAIC(model.forward.Start, direction = "both", trace = F)
-
 summary(model.Stepwise)
 model.Stepwise$anova
 
@@ -202,8 +206,68 @@ model.Stepwise$anova
 ##########
 ##########
 
+#######################################################################################################################
+#######################################################################################################################
+#********************************Suggested models from AIC selection**************************************************#
+#######################################################################################################################
+model.forward.Start2 <- lm(log(df.price_doc) ~ ., data = df2.Forward.maxVars)
+model.end2 <- lm(log(df.price_doc) ~ 1, data = df2.Forward.maxVars)
+# Forward Suggestion
+df2.Forward.maxVars <- data.frame(df$price_doc, df$full_sq, df$life_sq, df$floor, df$max_floor, df$kitch_sq, df$product_type, df$children_preschool,
+                                  df$preschool_quota, df$children_school, df$university_top_20_raion, df$metro_min_walk, df$industrial_km,
+                                  df$railroad_station_walk_km, df$kremlin_km, df$big_road1_km, df$big_road2_km, df$public_healthcare_km)
+
+fwd.suggested.lmModel <- lm(log(df.price_doc) ~ df.full_sq + df.life_sq + df.floor + df.max_floor + df.kitch_sq + df.product_type + df.children_preschool +
+                              df.preschool_quota + df.children_school + df.university_top_20_raion + df.metro_min_walk + df.industrial_km + df.railroad_station_walk_km + 
+                              df.kremlin_km + df.big_road1_km + df.big_road2_km + df.public_healthcare_km, data = df2.Forward.maxVars)
+
+fwd.suggested.lmModel <- lm(price_doc ~ full_sq + life_sq + floor + max_floor + kitch_sq + product_type + children_preschool +
+                              preschool_quota + children_school + university_top_20_raion + metro_min_walk + industrial_km + railroad_station_walk_km + 
+                              kremlin_km + big_road1_km + big_road2_km + public_healthcare_km, data = df)
+
+#### Forward Selection, second pass
+model.Forward2 <- stepAIC(fwd.suggested.lmModel, direction = "forward", trace = F, scope = formula(model.forward.Start))
+summary(model.Forward2)
+model.Forward2$anova
 
 
+
+# Backward Elimination
+df2.Backward.maxVars <- data.frame(df$price_doc, df$timestamp, df$full_sq, df$life_sq, df$floor, df$max_floor, df$kitch_sq, df$product_type, df$children_preschool,
+                                   df$preschool_quota, df$children_school, df$university_top_20_raion, df$office_raion, df$build_count_before_1920,
+                                   df$build_count_1921.1945, df$build_count_1946.1970, df$build_count_1971.1995, df$build_count_after_1995, df$metro_km_avto,
+                                   df$metro_min_walk, df$industrial_km, df$kremlin_km, df$big_road1_km, df$big_road2_km, df$fitness_km, df$stadium_km,
+                                   df$public_healthcare_km)
+
+back.suggested.lm.Model<- lm(price_doc ~ timestamp + full_sq + life_sq + floor + max_floor + kitch_sq + 
+                                    product_type + children_preschool + preschool_quota + children_school + 
+                                    university_top_20_raion + office_raion + build_count_before_1920 + build_count_1921.1945 + 
+                                    build_count_1946.1970 + build_count_1971.1995 + build_count_after_1995 + metro_km_avto + 
+                                    metro_min_walk + industrial_km + kremlin_km + big_road1_km + big_road2_km + fitness_km + 
+                                    stadium_km + public_healthcare_km, data = df)
+
+########## Backward Elimination, second pass. Adjusted R-squared:  0.3671 
+model.Backward2 <- stepAIC(back.suggested.lm.Model, direction = "backward", trace = F, scope = formula(model.forward.Start))
+summary(model.Backward2)
+model.Backward2$anova
+
+
+#Stepwise Regression
+df2.Stepwise <- data.frame(df$price_doc, df$timestamp, df$full_sq, df$indust_part, df$university_top_20_raion, df$build_count_1946.1970,
+                           df$metro_km_avto, df$kremlin_km, df$life_sq, df$children_preschool, df$office_raion,
+                           df$build_count_1971.1995, df$metro_min_walk, df$big_road1_km, df$floor, df$preschool_quota,
+                           df$build_count_before_1920, df$industrial_km, df$stadium_km, df$max_floor, df$public_healthcare_km, df$kitch_sq)
+
+step.suggested.lm.Model<- lm(price_doc ~ full_sq + floor + max_floor + kitch_sq + 
+                               product_type + preschool_quota + 
+                               office_raion + metro_min_walk + industrial_km + 
+                              kremlin_km + big_road1_km + public_healthcare_km + full_sq*kitch_sq + kremlin_km*big_road1_km, data = df)
+VIF(step.suggested.lm.Model)
+########## Stepwise Selection, second pass
+model.Stepwise2 <- stepAIC(step.suggested.lm.Model, direction = "both", trace = F)
+#model.Stepwise2 <- stepAIC(step.suggested.lm.Model, direction = "both", trace = F)
+summary(model.Stepwise2)
+model.Stepwise2$anova
 
 #######################################################################################################################
 #######################################################################################################################
