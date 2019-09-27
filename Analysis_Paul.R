@@ -102,8 +102,50 @@ df$railroad_terminal_raion <- dplyr::recode(df$railroad_terminal_raion,  "no" = 
 df <- df %>% mutate(railroad_station_walk_min = if_else(is.na(railroad_station_walk_min),0,railroad_station_walk_min))
 ##########
 
+##########
+df <- df %>% mutate(ID_railroad_station_walk = if_else(is.na(ID_railroad_station_walk),0,ID_railroad_station_walk))
+##########
+
 ############################## conversion to numeric and factor only for modeling consistency #############################
+
 df <- df %>% mutate_if(is.integer, as.numeric) %>% mutate_if(is.character, as.factor) %>% data.frame()
+
+
+#######################################################################################################################
+############################################### Correlation Matrix Start ##############################################
+#######################################################################################################################
+
+df.numeric <- dplyr::select_if(df, is.numeric) %>% data.frame()
+
+df.numeric.no.NA <- df.numeric %>% na.omit()
+
+flattenCorrMatrix <- function(cormatrix, pmatrix) {
+  ut <- upper.tri(cormatrix)
+  data.frame(
+    row = rownames(cormatrix)[row(cormatrix)[ut]],
+    column = rownames(cormatrix)[col(cormatrix)[ut]],
+    cor  =(cormatrix)[ut],
+    p = pmatrix[ut]
+  )
+}
+
+options(scipen=999)
+options(max.print=100000) 
+
+#See what variables are correlated with eachother, p-values
+correlation.matrix <- rcorr(as.matrix(df.numeric.no.NA))
+corDF <- data.frame(flattenCorrMatrix(correlation.matrix$r, correlation.matrix$P))
+
+corDF.ordered <- data.frame(corDF[order(-corDF$cor),])
+
+somewhat.correlated <- corDF[which(corDF$cor >= 0.5),]
+somewhat.correlated
+SomewhatCorDF.ordered <- data.frame(somewhat.correlated[order(-somewhat.correlated$cor),])
+
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+
 
 ##########
 ########## Start of OLS (shells for now)
@@ -125,9 +167,19 @@ model.Allvar <- lm(log(price_doc) ~ id + timestamp + full_sq +	life_sq + floor +
                    + swim_pool_km + ice_rink_km + stadium_km + basketball_km + public_healthcare_km + university_km + workplaces_km
                    + shopping_centers_km + office_km + big_church_km + price_doc, data = df)
 
+# Adds variable one at a time, starting from nothing
+fit1 <- lm(log(price_doc) ~ ., data=df)
+
+
+fit2 <- lm(log(price_doc) ~ 1, data=df)
+
+model.Forward <- stepAIC(fit2, direction = "forward", trace = F, scope = list(upper=fit1,lower=fit2))
+model.Backward <- stepAIC(fit1, direction = "backward")
+model.Stepwise <- stepAIC(fit2,direction="both",scope=list(upper=fit1,lower=fit2))
+
 #### Forward Selection, first pass
 model.Forward <- stepAIC(model.forward.Start, direction = "forward", trace = F, scope = formula(model.Allvar))
-
+?stepAIC
 summary(model.Forward)
 model.Forward$anova
 
@@ -139,7 +191,7 @@ summary(model.Backward)
 model.Backward$anova
 
 ########## Stepwise Selection
-model2.Stepwise <- stepAIC(model.Allvar, direction = "both", trace = F)
+model.Stepwise <- stepAIC(model.forward.Start, direction = "both", trace = F)
 
 summary(model.Stepwise)
 model.Stepwise$anova
