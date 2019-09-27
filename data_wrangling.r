@@ -99,6 +99,9 @@ pairs(jeffsData)
 
 modelingData = modelingData %>% mutate(timestamp = as.Date(timestamp, origin="1899-12-30"))
 
+<<<<<<< HEAD
+cor(jeffsData)
+=======
 res1 <- cor.mtest(jeffsData, conf.level = .95)
 cplot = cor(jeffsData)
 corrplot(cplot, p.mat = res1$p, sig.level = 0.05, method = "number")
@@ -111,3 +114,4 @@ corrplot(cplot, p.mat = res1$p, sig.level = 0.05, method = "number")
 #'build_year # too many NA's
 #'floor
 #'
+>>>>>>> 5d986c2339d219c635ff0b2753b28ac014f352a4
