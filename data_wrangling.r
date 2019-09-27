@@ -103,3 +103,11 @@ res1 <- cor.mtest(jeffsData, conf.level = .95)
 cplot = cor(jeffsData)
 corrplot(cplot, p.mat = res1$p, sig.level = 0.05, method = "number")
 
+
+
+#'Adam's variables that have high correlation with price
+#'full_sq
+#'num_room
+#'build_year # too many NA's
+#'floor
+#'
