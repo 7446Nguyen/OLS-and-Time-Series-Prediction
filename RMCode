@@ -1,0 +1,145 @@
+library(tidyverse)
+library(skimr)
+library(olsrr)
+library(ggplot2)
+library(dplyr)
+library(RCurl)
+library(caret)
+library(corrplot)
+library(lmtest)
+library(multcomp)
+library(ggthemes)
+library(Hmisc)
+library(tidyr)
+
+
+#read in "modelingData" dataset
+url <- getURL("https://raw.githubusercontent.com/rmcdaniel-smu/Stats6372/master/Project1/modelingData.csv")
+RMdf <- read.csv(text = url, header = T, sep = ",", strip.white = T)
+str(RMdf)
+ncol(RMdf)
+view(RMdf)
+skim(RMdf)
+
+#format date:
+RMdf = RMdf %>% mutate(timestamp = as.Date(timestamp, origin="1899-12-30"))
+tryFormats = c("%Y-%m-%d", "%Y/%m/%d")
+view(RMdf)
+
+which(complete.cases(RMdf))
+which(!complete.cases(RMdf))
+
+colnames(RMdf)
+
+#na_count <- sapply(RMdf, function(cnt) sum(length(which(is.na(cnt)))))
+#na_count
+
+#metro_min_avto -- var#40 -- noNAs
+hist(RMdf$metro_min_avto)
+hist(RMdf$metro_min_avto,breaks = 70)
+
+#price_doc vs metro_min_avto
+ggplot(RMdf,aes(metro_min_avto,fill=price_doc)) +
+  stat_count(width = 0.5) +
+  xlab("Minutes by Car to Metro") +
+  ylab("Price") +
+  theme_classic() + scale_fill_hue(guide = 'none') +
+  labs(fill=price_doc)
+ggplot(RMdf,aes(x = metro_min_avto)) + geom_bar(aes(fill=price_doc),position = 'fill') +
+  scale_y_continuous(labels = percent_format)
+
+
+#metro_km_avto -- var#41 -- noNAs
+hist(RMdf$metro_km_avto)
+hist(RMdf$metro_km_avto,breaks = 80)
+
+#price_doc vs metro_km_avto
+ggplot(RMdf,aes(metro_km_avto,fill=price_doc)) +
+  stat_count(width = 0.5) +
+  xlab("") +
+  ylab("Price") +
+  theme_classic() + scale_fill_hue(guide = 'none') +
+  labs(fill=price_doc)
+ggplot(RMdf,aes(x = metro_km_avto)) + geom_bar(aes(fill=price_doc),position = 'fill') +
+  scale_y_continuous(labels = percent_format)
+
+
+#metro_min_walk -- var#42 -- 19NAs
+RMdf$metro_min_walk <- RMdf$metro_min_walk %>% replace_na(0)
+RMdf$metro_min_walk
+hist(RMdf$metro_min_walk)
+hist(RMdf$metro_min_walk,breaks = 100)
+
+#price_doc vs metro_min_walk
+ggplot(RMdf,aes(metro_min_walk,fill=price_doc)) +
+  stat_count(width = 0.5) +
+  xlab("") +
+  ylab("Price") +
+  theme_classic() + scale_fill_hue(guide = 'none') +
+  labs(fill=price_doc)
+ggplot(RMdf,aes(x = metro_min_walk)) + geom_bar(aes(fill=price_doc),position = 'fill') +
+  scale_y_continuous(labels = percent_format)
+
+
+#metro_km_walk -- var#43 -- 19NAs
+RMdf$metro_km_walk <- RMdf$metro_km_walk %>% replace_na(0)
+RMdf$metro_km_walk
+hist(RMdf$metro_km_walk)
+hist(RMdf$metro_km_walk,breaks = 60)
+
+#price_doc vs metro_km_walk
+ggplot(RMdf,aes(metro_km_walk,fill=price_doc)) +
+  stat_count(width = 0.5) +
+  xlab("") +
+  ylab("Price") +
+  theme_classic() + scale_fill_hue(guide = 'none') +
+  labs(fill=price_doc)
+ggplot(RMdf,aes(x = metro_km_walk)) + geom_bar(aes(fill=price_doc),position = 'fill') +
+  scale_y_continuous(labels = percent_format)
+
+
+
+#school_km -- var#44 -- noNAs
+hist(RMdf$school_km)
+hist(RMdf$school_km,breaks = 40)
+
+#park_km -- var#45 -- noNAs
+hist(RMdf$park_km)
+hist(RMdf$park_km,breaks = 25)
+
+#green_zone_km -- var#46 -- noNAs
+hist(RMdf$green_zone_km)
+#hist(RMdf$green_zone_km,breaks = 5)
+
+#industrial_km -- var#47 -- noNAs
+hist(RMdf$industrial_km)
+#hist(RMdf$industrial_km,breaks = 10)
+
+#school_km -- var#44 -- noNAs
+hist(RMdf$school_km)
+hist(RMdf$school_km,breaks = 40)
+
+#railroad_station_walk_km -- var#48 -- 19NAs
+RMdf$railroad_station_walk_km <- RMdf$railroad_station_walk_km %>% replace_na(0)
+RMdf$railroad_station_walk_km
+hist(RMdf$railroad_station_walk_km)
+hist(RMdf$railroad_station_walk_km,breaks = 40)
+
+#railroad_station_walk_min -- var#49 -- 19NAs
+RMdf$railroad_station_walk_min <- RMdf$railroad_station_walk_min %>% replace_na(0)
+RMdf$railroad_station_walk_min
+hist(RMdf$railroad_station_walk_min)
+hist(RMdf$railroad_station_walk_min,breaks = 100)
+
+
+#price_doc Corr Plot
+
+priceDoc=RMdf%>% select(26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49)
+#check correlation
+pairs.panels(priceDoc, col='red')
+
+priceDocf %>%
+filter(price_doc =="Yes") %>%
+select_if(is.numeric) %>%
+cor() %>%
+corrplot::corrplot()
