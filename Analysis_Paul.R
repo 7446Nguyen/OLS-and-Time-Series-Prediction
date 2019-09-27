@@ -130,20 +130,20 @@ flattenCorrMatrix <- function(cormatrix, pmatrix) {
 }
 
 options(scipen=999)
-options(max.print=100000) 
+options(max.print=100000)
 
 #See what variables are correlated with eachother, p-values
 correlation.matrix <- rcorr(as.matrix(df.numeric.no.NA))
 corDF <- data.frame(flattenCorrMatrix(correlation.matrix$r, correlation.matrix$P))
 
 corDF.ordered <- data.frame(corDF[order(-corDF$cor),])
-
 somewhat.correlated <- corDF[which(corDF$cor >= 0.5),]
-somewhat.correlated
+
 SomewhatCorDF.ordered <- data.frame(somewhat.correlated[order(-somewhat.correlated$cor),])
+SomewhatCorDF.ordered
 
 #######################################################################################################################
-#######################################################################################################################
+############################################### Correlation Matrix Start ##############################################
 #######################################################################################################################
 
 
@@ -165,7 +165,7 @@ model.Allvar <- lm(log(price_doc) ~ id + timestamp + full_sq +	life_sq + floor +
                    + railroad_station_avto_km + railroad_station_avto_min + public_transport_station_km + public_transport_station_min_walk
                    + kremlin_km + big_road1_km + big_road2_km + railroad_km + bus_terminal_avto_km + big_market_km + market_shop_km + fitness_km
                    + swim_pool_km + ice_rink_km + stadium_km + basketball_km + public_healthcare_km + university_km + workplaces_km
-                   + shopping_centers_km + office_km + big_church_km + price_doc, data = df)
+                   + shopping_centers_km + office_km + big_church_km, data = df)
 
 # Adds variable one at a time, starting from nothing
 fit1 <- lm(log(price_doc) ~ ., data=df)
@@ -201,3 +201,74 @@ model.Stepwise$anova
 ########## End of OLS
 ##########
 ##########
+
+
+
+
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#*********************************DANGER ZONE: UNDER CONSTRUCTION. DO NOT USE YET*************************************#
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+#######################################################################################################################
+
+# Set up repeated k-fold cross-validation
+train.control <- trainControl(method = "cv", number = 10)
+
+# Train the model
+model.cv <- train(log(price_doc) ~ id + timestamp + full_sq +	life_sq + floor + max_floor + material + num_room + kitch_sq + product_type
+                   + raion_popul + green_zone_part + indust_part + children_preschool + preschool_quota + children_school + hospital_beds_raion
+                   + healthcare_centers_raion + university_top_20_raion + shopping_centers_raion + office_raion + railroad_terminal_raion
+                   + big_market_raion + full_all + X0_6_all + X7_14_all + X0_17_all + X16_29_all + X0_13_all + build_count_block + build_count_wood 
+                   + build_count_frame + build_count_brick + build_count_before_1920 + build_count_1921.1945 + build_count_1946.1970
+                   + build_count_1971.1995 + build_count_after_1995 + metro_min_avto + metro_km_avto + metro_min_walk + metro_km_walk + school_km
+                   + park_km + green_zone_km + industrial_km + railroad_station_walk_km + railroad_station_walk_min + ID_railroad_station_walk
+                   + railroad_station_avto_km + railroad_station_avto_min + public_transport_station_km + public_transport_station_min_walk
+                   + kremlin_km + big_road1_km + big_road2_km + railroad_km + bus_terminal_avto_km + big_market_km + market_shop_km + fitness_km
+                   + swim_pool_km + ice_rink_km + stadium_km + basketball_km + public_healthcare_km + university_km + workplaces_km
+                   + shopping_centers_km + office_km + big_church_km,
+                   data = df,
+                   method = 'lm',
+                   trControl = train.control)
+
+# print model summary
+model.cv
+
+# get the CV results
+res <- model.cv$results
+
+# get cross-validated PRESS statistic
+PCV.forward <- PRESS.cv(model.cv)
+
+#Our custom model achieved a Kaggle score of 0.13290. This was our best score.
+
+## To test in Kaggle, submit the produced "submit" file "fitFull.all4.Final" is the model we want to use based on adj R-sqr and other stats.
+test$predicted.log.price <- predict.lm(fit.model.Final, test)
+test$predicted.log.price[is.na(test$predicted.log.price)] <- mean(test$predicted.log.price, na.rm = T)
+
+submit <- test %>% mutate(SalePrice = exp(predicted.log.price)) %>% subset(select=c(Id, price_doc))
+
+write.csv(submit, file = "./kaggle_submission.csv", row.names = F)
