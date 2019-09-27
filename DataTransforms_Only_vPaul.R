@@ -9,7 +9,11 @@ p_load(lmtest
        ,olsrr
        ,caret
        ,multcomp
-       ,ggthemes)
+       ,ggthemes
+       ,MASS)# for OLS
+
+na_count <- sapply(df, function(cnt) sum(length(which(is.na(cnt)))))
+na_count
 
 #format dates:
 modelingData = modelingData %>% mutate(timestamp = as.Date(timestamp, origin="1899-12-30"))
@@ -85,12 +89,60 @@ df$office_raion <- sqrt(df$office_raion^1/10)
 ##########
 
 ########## big market raion
-df$big_market_raion <- dplyr::recode(df$big_market_raion,  "No" = 0, "Yes"= 1)
+df$big_market_raion <- dplyr::recode(df$big_market_raion,  "no" = 0, "yes"= 1)
 ##########
 
 ########## railroad terminal raion
-df$railroad_terminal_raion <- dplyr::recode(df$railroad_terminal_raion,  "No" = 0, "Yes"= 1)
+df$railroad_terminal_raion <- dplyr::recode(df$railroad_terminal_raion,  "no" = 0, "yes"= 1)
+##########
+
+##########
+df <- df %>% mutate(ID_railroad_station_walk = na.mean(ID_railroad_station_walk))
 ##########
 
 ############################## conversion to numeric and factor only for modeling consistency #############################
 df <- df %>% mutate_if(is.integer, as.numeric) %>% mutate_if(is.character, as.factor) %>% data.frame()
+str(df)
+##########
+########## Start of OLS (shells for now)
+##########
+
+########## Forward Selection
+model.forward.Start <- lm(log(price_doc)~1,data = df)
+# All Variables Model - Forward Selection
+model.Allvar <- lm(log(price_doc) ~ id + timestamp + full_sq +	life_sq + floor + max_floor + material + num_room + kitch_sq + product_type
+                   + raion_popul + green_zone_part + indust_part + children_preschool + preschool_quota + children_school + hospital_beds_raion
+                   + healthcare_centers_raion + university_top_20_raion + shopping_centers_raion + office_raion + railroad_terminal_raion
+                   + big_market_raion + full_all + X0_6_all + X7_14_all + X0_17_all + X16_29_all + X0_13_all + build_count_block + build_count_wood 
+                   + build_count_frame + build_count_brick + build_count_before_1920 + build_count_1921.1945 + build_count_1946.1970
+                   + build_count_1971.1995 + build_count_after_1995 + metro_min_avto + metro_km_avto + metro_min_walk + metro_km_walk + school_km
+                   + park_km + green_zone_km + industrial_km + railroad_station_walk_km + railroad_station_walk_min + ID_railroad_station_walk
+                   + railroad_station_avto_km + railroad_station_avto_min + public_transport_station_km + public_transport_station_min_walk
+                   + kremlin_km + big_road1_km + big_road2_km + railroad_km + bus_terminal_avto_km + big_market_km + market_shop_km + fitness_km
+                   + swim_pool_km + ice_rink_km + stadium_km + basketball_km + public_healthcare_km + university_km + workplaces_km
+                   + shopping_centers_km + office_km + big_church_km + price_doc, data = df)
+
+#### Forward Selection, first pass
+model.Forward <- stepAIC(model.forward.Start, direction = "forward", trace = F, scope = formula(model.Allvar))
+
+summary(model.Forward)
+model.Forward$anova
+
+
+########## Backward Elimination
+model.Backward <- stepAIC(model.Allvar, direction = "backward", trace = F, scope = formula(model.forward.Start))
+
+summary(model.Backward)
+model.Backward$anova
+
+########## Stepwise Selection
+model2.Stepwise <- stepAIC(model.Allvar, direction = "both", trace = F)
+
+summary(model.Stepwise)
+model.Stepwise$anova
+
+##########
+##########
+########## End of OLS
+##########
+##########
