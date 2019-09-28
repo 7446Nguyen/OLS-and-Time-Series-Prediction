@@ -12,7 +12,9 @@ p_load(lmtest
        ,ggthemes
        ,MASS# for OLS
        ,regclass# for VIF
-       )
+       ,stats
+       ,glmnet)
+
 
 na_count <- sapply(df, function(cnt) sum(length(which(is.na(cnt)))))
 na_count
@@ -25,6 +27,7 @@ df <- read.csv("./modelingData.csv",  header=T, sep=",", strip.white=T, stringsA
 
 ########## Floor
 df$floor <- df$floor %>% replace_na(0)
+df$floor <- log(df$floor+1)
 ##########
 
 df$product_type <- as.factor(df$product_type)
@@ -71,7 +74,8 @@ dishonestKitchens <- (df$kitch_sq - df$full_sq)
 df <- data.frame(dishonestKitchens, df)
 df <- df[which(df$dishonestKitchens < -2),] #kitchen space shouldn't be greater than more than 2 meters less than the full sq
 df <- subset(df, select = -c(dishonestKitchens)) # remove the counter variable dishonestKitchens
-df$kitch_sq <- sqrt(df$kitch_sq^1/16+1)
+#df$kitch_sq <- sqrt(df$kitch_sq^1/16+1)
+df$kitch_sq <- sqrt(df$kitch_sq)
 ##########
 
 ########## num room
@@ -117,8 +121,22 @@ df <- df %>% mutate(ID_railroad_station_walk = if_else(is.na(ID_railroad_station
 ##########
 
 ##########
+df$railroad_station_walk_km <- df$railroad_station_walk_km %>% replace_na(0)
+##########
+
+##########
 df <- df[which(!is.na(df$build_count_before_1920)),] #one fell swoop to take out all NA 'build_count_{year range}' rows
 ##########
+
+##########
+df$metro_min_walk <- RMdf$metro_min_walk %>% replace_na(0)
+##########
+
+##########
+df$metro_km_walk <- df$metro_km_walk %>% replace_na(0)
+##########
+
+df <- df[-c(2958, 1192, 2998,134, 3156, 1452, 2994, 3151, 98),]
 
 ############################## conversion to numeric and factor only for modeling consistency #############################
 
@@ -158,18 +176,46 @@ collinear.correlation <- data.frame(collinear.correlation[order(-collinear.corre
 #write.csv(corDF.ordered, "All_Vars_Correlation_Matrix.csv")
 
 #######################################################################################################################
-############################################### Correlation Matrix Start ##############################################
+############################################### Correlation Matrix End ################################################
 #######################################################################################################################
 
+xfactors <- model.matrix(price_doc ~ ., data=df)[,-1]
+x <- as.matrix(data.frame(xfactors))
+y <- as.vector(df$price_doc)
+
+fit1 <- glmnet(x,y)
+glmmod <- glmnet(x, y, alpha = 0.05, family = "binomial")
+
+?model.matrix
+str(x)
+x <- model.matrix(price_doc ~ id + timestamp + full_sq +	life_sq + floor + max_floor + material + num_room + kitch_sq + product_type
+                  + raion_popul + green_zone_part + indust_part + children_preschool + preschool_quota + children_school + hospital_beds_raion
+                  + healthcare_centers_raion + university_top_20_raion + shopping_centers_raion + office_raion + railroad_terminal_raion
+                  + big_market_raion + full_all + X0_6_all + X7_14_all + X0_17_all + X16_29_all + X0_13_all + build_count_block + build_count_wood 
+                  + build_count_frame + build_count_brick + build_count_before_1920 + build_count_1921.1945 + build_count_1946.1970
+                  + build_count_1971.1995 + build_count_after_1995 + metro_min_avto + metro_km_avto + metro_min_walk + metro_km_walk + school_km
+                  + park_km + green_zone_km + industrial_km + railroad_station_walk_km + railroad_station_walk_min + ID_railroad_station_walk
+                  + railroad_station_avto_km + railroad_station_avto_min + public_transport_station_km + public_transport_station_min_walk
+                  + kremlin_km + big_road1_km + big_road2_km + railroad_km + bus_terminal_avto_km + big_market_km + market_shop_km + fitness_km
+                  + swim_pool_km + ice_rink_km + stadium_km + basketball_km + public_healthcare_km + university_km + workplaces_km
+                  + shopping_centers_km + office_km + big_church_km, data=df)
+
+df$ones <- rep(1, nrow(df))
+train(Y ~ ones+B, data=df[c("Y", "B", "ones")], method="glmnet", 
+      family="binomial", trControl = fitControl, tuneGrid = tuneGrid, metric = "ROC")
+
+nrow(y)
+y <- df$price_doc
+mod <- cv.glmnet(as.matrix(x), y, alpha = 1)
 
 ##########
 ########## Start of OLS (shells for now)
 ##########
 
 ########## Forward Selection
-model.forward.Start <- lm(log(price_doc) ~ ., data = df)
+model.forward.Start <- lm(log(price_doc) ~ ., data = df) # all variables
 
-model.end <- lm(log(price_doc) ~ 1, data = df)
+model.end <- lm(log(price_doc) ~ 1, data = df) # add one at a time
 
 # All Variables Model - Forward Selection
 model.Allvar <- lm(log(price_doc) ~ id + timestamp + full_sq +	life_sq + floor + max_floor + material + num_room + kitch_sq + product_type
@@ -210,27 +256,18 @@ model.Stepwise$anova
 #######################################################################################################################
 #********************************Suggested models from AIC selection**************************************************#
 #######################################################################################################################
-model.forward.Start2 <- lm(log(df.price_doc) ~ ., data = df2.Forward.maxVars)
-model.end2 <- lm(log(df.price_doc) ~ 1, data = df2.Forward.maxVars)
+
 # Forward Suggestion
-df2.Forward.maxVars <- data.frame(df$price_doc, df$full_sq, df$life_sq, df$floor, df$max_floor, df$kitch_sq, df$product_type, df$children_preschool,
-                                  df$preschool_quota, df$children_school, df$university_top_20_raion, df$metro_min_walk, df$industrial_km,
-                                  df$railroad_station_walk_km, df$kremlin_km, df$big_road1_km, df$big_road2_km, df$public_healthcare_km)
-
-fwd.suggested.lmModel <- lm(log(df.price_doc) ~ df.full_sq + df.life_sq + df.floor + df.max_floor + df.kitch_sq + df.product_type + df.children_preschool +
-                              df.preschool_quota + df.children_school + df.university_top_20_raion + df.metro_min_walk + df.industrial_km + df.railroad_station_walk_km + 
-                              df.kremlin_km + df.big_road1_km + df.big_road2_km + df.public_healthcare_km, data = df2.Forward.maxVars)
-
 fwd.suggested.lmModel <- lm(price_doc ~ full_sq + life_sq + floor + max_floor + kitch_sq + product_type + children_preschool +
                               preschool_quota + children_school + university_top_20_raion + metro_min_walk + industrial_km + railroad_station_walk_km + 
                               kremlin_km + big_road1_km + big_road2_km + public_healthcare_km, data = df)
 
 #### Forward Selection, second pass
 model.Forward2 <- stepAIC(fwd.suggested.lmModel, direction = "forward", trace = F, scope = formula(model.forward.Start))
-summary(model.Forward2)
+summary.lm(model.Forward2)
 model.Forward2$anova
 
-
+plot(model.Forward2)
 
 # Backward Elimination
 df2.Backward.maxVars <- data.frame(df$price_doc, df$timestamp, df$full_sq, df$life_sq, df$floor, df$max_floor, df$kitch_sq, df$product_type, df$children_preschool,
@@ -250,6 +287,7 @@ back.suggested.lm.Model<- lm(price_doc ~ timestamp + full_sq + life_sq + floor +
 model.Backward2 <- stepAIC(back.suggested.lm.Model, direction = "backward", trace = F, scope = formula(model.forward.Start))
 summary(model.Backward2)
 model.Backward2$anova
+plot(model.Backward2)
 
 
 #Stepwise Regression
@@ -268,6 +306,7 @@ model.Stepwise2 <- stepAIC(step.suggested.lm.Model, direction = "both", trace = 
 #model.Stepwise2 <- stepAIC(step.suggested.lm.Model, direction = "both", trace = F)
 summary(model.Stepwise2)
 model.Stepwise2$anova
+plot(model.Stepwise2)
 
 #######################################################################################################################
 #######################################################################################################################
