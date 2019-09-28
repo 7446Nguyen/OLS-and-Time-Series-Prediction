@@ -129,7 +129,7 @@ df <- df[which(!is.na(df$build_count_before_1920)),] #one fell swoop to take out
 ##########
 
 ##########
-df$metro_min_walk <- RMdf$metro_min_walk %>% replace_na(0)
+df$metro_min_walk <- df$metro_min_walk %>% replace_na(0)
 ##########
 
 ##########
