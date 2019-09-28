@@ -19,17 +19,24 @@ p_load(lmtest
        ,ggplot2
        ,xlsx)
 
-
-na_count <- sapply(df, function(cnt) sum(length(which(is.na(cnt)))))
-na_count
-
 #format dates:
 df <- read.csv("./modelingData.csv",  header=T, sep=",", strip.white=T, stringsAsFactors = F)
 
 df <- df %>% mutate(timestamp = as.Date(timestamp, origin="1899-12-30"))
 tryFormats = c("%Y-%m-%d", "%Y/%m/%d")
 
-df <- df %>% separate(timestamp, sep="-", into = c("year", "month", "day"))
+timestamp2 <- df$timestamp
+df <- data.frame(timestamp2, df)
+
+df <- df %>% mutate(timestamp = as.Date(timestamp, origin="1899-12-30"))
+tryFormats = c("%Y-%m-%d", "%Y/%m/%d")
+
+df <- df %>% separate(timestamp2, sep="-", into = c("year", "month", "day"))
+
+names(df$build_count_1921.1945)[36] <- "build_count_1921_1945"
+names(df$build_count_1946.1970)[37] <- "build_count_1946_1970"
+names(df$build_count_1971.1995)[38] <- "build_count_1971_1995"
+names(df$public_transport_station_min_walk)[54] <- "public_trans_station_time_walk"
 
 
 ########## Floor
