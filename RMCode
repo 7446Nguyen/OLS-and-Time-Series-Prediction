@@ -26,18 +26,79 @@ RMdf = RMdf %>% mutate(timestamp = as.Date(timestamp, origin="1899-12-30"))
 tryFormats = c("%Y-%m-%d", "%Y/%m/%d")
 view(RMdf)
 
-which(complete.cases(RMdf))
-which(!complete.cases(RMdf))
+#which(complete.cases(RMdf))
+#which(!complete.cases(RMdf))
 
 colnames(RMdf)
 
 #na_count <- sapply(RMdf, function(cnt) sum(length(which(is.na(cnt)))))
 #na_count
 
+#X0_06_all -- var#26 -- noNAs
+hist(RMdf$X0_6_all)
+
+#X7_14_all -- var#27 -- noNAs
+hist(RMdf$X7_14_all)
+
+#X0_17_all -- var#28 -- noNAs
+hist(RMdf$X0_17_all)
+
+#X16_29_all -- var#29 -- noNAs
+hist(RMdf$X16_29_all)
+
+#X0_13_all -- var#30 -- noNAs
+hist(RMdf$X0_13_all)
+
+#build_count_block -- var#31 -- 4195NAs
+RMdf$build_count_block <- RMdf$build_count_block %>% replace_na(0)
+RMdf$build_count_block
+hist(RMdf$build_count_block)
+
+#build_count_wood -- var#32 -- 4195NAs
+RMdf$build_count_wood <- RMdf$build_count_wood %>% replace_na(0)
+RMdf$build_count_wood
+hist(RMdf$build_count_wood)
+
+#build_count_frame -- var#33 -- 4195NAs
+RMdf$build_count_frame <- RMdf$build_count_frame %>% replace_na(0)
+RMdf$build_count_frame
+hist(RMdf$build_count_frame)
+
+#build_count_brick -- var#34 -- 4195NAs
+RMdf$build_count_brick <- RMdf$build_count_brick %>% replace_na(0)
+RMdf$build_count_brick
+hist(RMdf$build_count_brick)
+
+#build_count_before_1920 -- var#35 --4195NAs
+RMdf$build_count_before_1920 <- RMdf$build_count_before_1920 %>% replace_na(0)
+RMdf$build_count_before_1920
+hist(RMdf$build_count_before_1920)
+
+#build_count_1921.1945 -- var#36 -- 4195NAs
+RMdf$build_count_1921.1945 <- RMdf$build_count_1921.1945 %>% replace_na(0)
+RMdf$build_count_1921.1945
+hist(RMdf$build_count_1921.1945)
+
+#build_count_1946.1970 -- var#37 -- 4195NAs
+RMdf$build_count_1946.1970 <- RMdf$build_count_1946.1970 %>% replace_na(0)
+RMdf$build_count_1946.1970
+hist(RMdf$build_count_1946.1970)
+
+#build_count_1971.1995 -- var#38 -- 4195NAs
+RMdf$build_count_1971.1995 <- RMdf$build_count_1971.1995 %>% replace_na(0)
+RMdf$build_count_1971.1995
+hist(RMdf$build_count_1971.1995)
+
+#build_count_after_1995 -- var#39 -- 4195NAs
+RMdf$build_count_after_1995 <- RMdf$build_count_after_1995 %>% replace_na(0)
+RMdf$build_count_after_1995
+hist(RMdf$build_count_after_1995)
+
 #metro_min_avto -- var#40 -- noNAs
 hist(RMdf$metro_min_avto)
 hist(RMdf$metro_min_avto,breaks = 70)
 
+RMdf$metro_min_avto
 #price_doc vs metro_min_avto
 ggplot(RMdf,aes(metro_min_avto,fill=price_doc)) +
   stat_count(width = 0.5) +
@@ -47,7 +108,6 @@ ggplot(RMdf,aes(metro_min_avto,fill=price_doc)) +
   labs(fill=price_doc)
 ggplot(RMdf,aes(x = metro_min_avto)) + geom_bar(aes(fill=price_doc),position = 'fill') +
   scale_y_continuous(labels = percent_format)
-
 
 #metro_km_avto -- var#41 -- noNAs
 hist(RMdf$metro_km_avto)
@@ -62,7 +122,6 @@ ggplot(RMdf,aes(metro_km_avto,fill=price_doc)) +
   labs(fill=price_doc)
 ggplot(RMdf,aes(x = metro_km_avto)) + geom_bar(aes(fill=price_doc),position = 'fill') +
   scale_y_continuous(labels = percent_format)
-
 
 #metro_min_walk -- var#42 -- 19NAs
 RMdf$metro_min_walk <- RMdf$metro_min_walk %>% replace_na(0)
@@ -80,7 +139,6 @@ ggplot(RMdf,aes(metro_min_walk,fill=price_doc)) +
 ggplot(RMdf,aes(x = metro_min_walk)) + geom_bar(aes(fill=price_doc),position = 'fill') +
   scale_y_continuous(labels = percent_format)
 
-
 #metro_km_walk -- var#43 -- 19NAs
 RMdf$metro_km_walk <- RMdf$metro_km_walk %>% replace_na(0)
 RMdf$metro_km_walk
@@ -96,8 +154,6 @@ ggplot(RMdf,aes(metro_km_walk,fill=price_doc)) +
   labs(fill=price_doc)
 ggplot(RMdf,aes(x = metro_km_walk)) + geom_bar(aes(fill=price_doc),position = 'fill') +
   scale_y_continuous(labels = percent_format)
-
-
 
 #school_km -- var#44 -- noNAs
 hist(RMdf$school_km)
@@ -125,21 +181,19 @@ RMdf$railroad_station_walk_km
 hist(RMdf$railroad_station_walk_km)
 hist(RMdf$railroad_station_walk_km,breaks = 40)
 
-#railroad_station_walk_min -- var#49 -- 19NAs
-RMdf$railroad_station_walk_min <- RMdf$railroad_station_walk_min %>% replace_na(0)
-RMdf$railroad_station_walk_min
-hist(RMdf$railroad_station_walk_min)
-hist(RMdf$railroad_station_walk_min,breaks = 100)
-
 
 #price_doc Corr Plot
 
-priceDoc=RMdf%>% select(26:48,73)
+priceDoc=RMdf %>% dplyr::select(26:48,73)
+names(priceDoc)
 #check correlation
 pairs.panels(priceDoc, col='red')
 
-priceDocf %>%
-filter(price_doc =="Yes") %>%
-select_if(is.numeric) %>%
-cor() %>%
-corrplot::corrplot()
+skim(priceDoc)
+
+cor(priceDoc)
+priceDoc=RMdf %>%
+  filter(priceDoc=="Yes") %>%
+  select_if(is.numeric) %>%
+  cor()%>%
+  corrplot::corrplot()
