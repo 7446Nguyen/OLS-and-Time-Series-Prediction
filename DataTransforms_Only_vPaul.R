@@ -24,7 +24,7 @@ df <- read.csv("./modelingData.csv",  header=T, sep=",", strip.white=T, stringsA
 
 names(df)[36] <- "build_count_1921_1945"
 names(df)[37] <- "build_count_1946_1970"
-names(df5)[38] <- "build_count_1971_1995"
+names(df)[38] <- "build_count_1971_1995"
 names(df)[54] <- "public_trans_station_time_walk"
 
 
