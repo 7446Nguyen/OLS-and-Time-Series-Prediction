@@ -15,18 +15,22 @@ p_load(lmtest
        ,stats
        ,glmnet
        ,sjPlot
-    #   ,sjmisc
-       ,ggplot2)
+       ,sjmisc
+       ,ggplot2
+       ,xlsx)
 
 
 na_count <- sapply(df, function(cnt) sum(length(which(is.na(cnt)))))
 na_count
 
 #format dates:
-modelingData = modelingData %>% mutate(timestamp = as.Date(timestamp, origin="1899-12-30"))
+df <- read.csv("./modelingData.csv",  header=T, sep=",", strip.white=T, stringsAsFactors = F)
+
+df <- df %>% mutate(timestamp = as.Date(timestamp, origin="1899-12-30"))
 tryFormats = c("%Y-%m-%d", "%Y/%m/%d")
 
-df <- read.csv("./modelingData.csv",  header=T, sep=",", strip.white=T, stringsAsFactors = F)
+df <- df %>% separate(timestamp, sep="-", into = c("year", "month", "day"))
+
 
 ########## Floor
 #df$floor <- df$floor %>% replace_na(0)
@@ -138,12 +142,13 @@ df$metro_min_walk[is.na(df$metro_min_walk)] <- 0
 df$metro_km_walk[is.na(df$metro_km_walk)] <- 0
 ##########
 
-df <- df[-c(2958, 1192, 2998,134, 3156, 1452, 2994, 3151, 98),]
-write.csv(df,"cleanDAta.csv")
-
 ############################## conversion to numeric and factor only for modeling consistency #############################
 
 df <- df %>% mutate_if(is.integer, as.numeric) %>% mutate_if(is.character, as.factor) %>% data.frame()
+
+df <- df[-c(2958, 1192, 2998,134, 3156, 1452, 2994, 3151, 98),]
+
+write.csv(df,"cleanData.csv")
 
 
 #######################################################################################################################
