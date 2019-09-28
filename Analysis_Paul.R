@@ -36,15 +36,8 @@ df$floor <- log(df$floor+1)
 
 df$product_type <- as.factor(df$product_type)
 
-########## Hospital bed raion
-#df$hospital_beds_raion <- df$hospital_beds_raion %>% replace_na(0)
-df$hospital_beds_raion[is.na(df$hospital_beds_raion)] <- 0
-df[which(df$hospital_beds_raion > 1),] <- 1
-df$hospital_beds_raion[is.na(df$hospital_beds_raion)] <- 0
-##########
-
-########## material
-df <- subset(df, select = -c(material))
+########## Material, Hospital bed raion
+df <- subset(df, select = -c(material, hospital_beds_raion))
 ##########
 
 ########## max floor
@@ -79,7 +72,6 @@ df <- data.frame(dishonestKitchens, df)
 df <- df[which(df$dishonestKitchens < -2),] #kitchen space shouldn't be greater than more than 2 meters less than the full sq
 df <- subset(df, select = -c(dishonestKitchens)) # remove the counter variable dishonestKitchens
 df$kitch_sq <- sqrt(df$kitch_sq^1/16+1)
-#df$kitch_sq <- sqrt(df$kitch_sq)
 ##########
 
 ########## num room
@@ -147,7 +139,7 @@ df$metro_km_walk[is.na(df$metro_km_walk)] <- 0
 ##########
 
 df <- df[-c(2958, 1192, 2998,134, 3156, 1452, 2994, 3151, 98),]
-write.csv(df,"Test.csv")
+write.csv(df,"cleanDAta.csv")
 
 ############################## conversion to numeric and factor only for modeling consistency #############################
 
