@@ -29,8 +29,18 @@ df <- read.csv("./modelingData.csv",  header=T, sep=",", strip.white=T, stringsA
 df <- df %>% mutate(timestamp = as.Date(timestamp, origin="1899-12-30"))
 tryFormats = c("%Y-%m-%d", "%Y/%m/%d")
 
-df <- df %>% separate(timestamp, sep="-", into = c("year", "month", "day"))
+timestamp2 <- df$timestamp
+df <- data.frame(timestamp2, df)
 
+df <- df %>% mutate(timestamp = as.Date(timestamp, origin="1899-12-30"))
+tryFormats = c("%Y-%m-%d", "%Y/%m/%d")
+
+df <- df %>% separate(timestamp2, sep="-", into = c("year", "month", "day"))
+
+colnames(df$build_count_1921.1945) <- "build_count_1921_1945"
+colnames(df$build_count_1946.1970) <- "build_count_1946_1970"
+colnames(df$build_count_1971.1995) <- "build_count_1971_1995"
+colnames(df$public_transport_station_min_walk) <- "public_trans_station_time_walk"
 
 ########## Floor
 #df$floor <- df$floor %>% replace_na(0)
