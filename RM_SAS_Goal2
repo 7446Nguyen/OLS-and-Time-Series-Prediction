@@ -6,19 +6,18 @@ PROC IMPORT DATAFILE=REFFILE
 	GETNAMES=YES;
 RUN;
 
-*/Goal2 - #3;
+/*Goal2 - #3*/
 proc gplot data=timeSeries;
 	plot price_doc*month;
 	title "Average Sales Price by Month";
 	symbol i=spline v=circle h=2;
 	run;
-
-*/Goal2 - #4a.;
+/*Goal2 - #4a.*/
 proc autoreg data=timeSeries;
 model price_doc=month;
 run;
 
-*/Goal2 - #4b.;
+/*Goal2 - #4b.*/
 
 
 
@@ -33,23 +32,23 @@ RUN;
 proc print data = tSB;
 run; 
 
-*/Goal2 - #4c with nlag=0/;
+/*Goal2 - #4c with nlag=0*/
 proc autoreg data=timeSeries;
 model price_doc=month / dwprob;
 run;
-*/Goal2 - #4c. with nlag=1/;
+/*Goal2 - #4c. with nlag=1*/
 proc autoreg data=timeSeries;
 model price_doc=month / nlag=(1) dwprob;
 run;
-*Goal2 - #4c. with nlag=3/;
+/*Goal2 - #4c. with nlag=3*/
 proc autoreg data=timeSeries;
 model price_doc=month / nlag=(3) dwprob;
 run;
-*Goal2 - #4c. with nlag=5/;
+/*Goal2 - #4c. with nlag=5*/
 proc autoreg data=timeSeries;
 model price_doc=month / nlag=(5) dwprob;
 run;
-*Goal2 - #4c. with nlag=6/;
+/*Goal2 - #4c. with nlag=6*/
 proc autoreg data=timeSeries;
 model price_doc=month / nlag=(6) dwprob;
 run;
@@ -85,4 +84,4 @@ output out = preds p = prediction lcl = lower ucl = upper pm = trend;
 run;
 proc print data = preds; run;
 
-/*Goal2 - #5*/;
+/*Goal2 - #5*/
