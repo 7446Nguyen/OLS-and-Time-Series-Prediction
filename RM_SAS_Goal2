@@ -1,0 +1,33 @@
+FILENAME REFFILE '/home/u39730261/6372/Project1_6372/timeSeries.xlsx';
+
+PROC IMPORT DATAFILE=REFFILE
+	DBMS=XLSX
+	OUT=timeSeries;
+	GETNAMES=YES;
+RUN;
+
+*/Goal2 - #3;
+proc gplot data=timeSeries;
+	plot price_doc*month;
+	title "Average Sales Price by Month";
+	symbol i=spline v=circle h=2;
+	run;
+
+*/Goal2 - #4a.;
+proc autoreg data=timeSeries;
+model price_doc=month;
+run;
+
+*/Goal2 - #4b.;
+
+
+
+
+*/Goal2 - #4c with nlag=0;
+proc autoreg data=timeSeries;
+model price_doc=month / dwprob;
+run;
+*/Goal2 - #4c. with nlag=1;
+proc autoreg data=timeSeries;
+model price_doc=month / nlag=(1) dwprob;
+run;
