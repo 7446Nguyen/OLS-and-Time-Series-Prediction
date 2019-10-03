@@ -89,7 +89,7 @@ run;
 /********************************************************and VIF model *******************************************************************/
 /*****************************************************************************************************************************************/
 /*****************************************************************************************************************************************/
-%let inputDataset = data;
+%let inputData = DF;
 %let numObs = 19827; *number of our cleanData observations (19,826) + 1;
 %let numVarsLasso = 14;
 %let lassoVars = Intercept id life_sq floor kitch_sq indust_part office_raion green_zone_km ID_railroad_station_walk kremlin_km fitness_km swim_pool_km university_km office_km;
@@ -102,19 +102,19 @@ run;
 /* quality check */
 %let depVar = quality;
 
-data dfTest; 
+data inDat; 
 set &inputData;
 randNumber = ranuni(11);
 if _n_ < &numObs;
 run;
 /* build our training data set for external cross-validation. We will train in 25% blocks, test on 75%. We feel this is reasonable. */
 data dfTrain;
-set df;
+set inDat;
 if randNumber <= 1/4 then delete;
 run;
 /* build our test data set for external cross-validation */
 data dfTest;
-set df;
+set inDat;
 if randNumber > 1/4 then delete;
 run;
 
@@ -192,8 +192,13 @@ merge fitLasso fitOLSLasso fitOLS;
   title "Goodness of Fit Measures Using Test Data - LASSO and Automatic OLS";
   proc print data = allMeasures;
   run;
+/*****************************************************************************************************************************************/
+/*****************************************************************************************************************************************/
+/************************ Below is the start of the SQL and model measures (R-Square and such) for our custom method *********************/
+/*****************************************************************************************************************************************/
+/*****************************************************************************************************************************************/
 
-  /* Calculate Sums of Squares from LASSO and best OLS and custom OLS outputs */
+/* Calculate Sums of Squares from LASSO and best OLS and custom OLS outputs */
 proc sql;
  create table fitLasso2 as /* fitLasso is our Corrected Total */
    select 
@@ -214,8 +219,8 @@ run;
 data allMeasuresCustom;
 merge fitLasso2 fitOLS2 customModel;
   rsqLasso = (1 - errSSLasso2 / totSS);
-  rsqOLSLasso = (1 - errSSOLS2 / totSS); errSSOLSLasso is now errSSOLS2
-  rsqOLS = (1 - errSScustomOLS / totSS); errSSOLS is now errSScustomOLS
+  rsqOLSLasso = (1 - errSSOLS2 / totSS); /* errSSOLSLasso is now errSSOLS2 */
+  rsqOLS = (1 - errSScustomOLS / totSS); /* errSSOLS is now errSScustomOLS */
   adjRsqLasso = (1 - errSSLasso / totSS)*((n - 1) / (n - &numVarsLasso - 1));
   adjRsqOLS = (1 - errSSOLS2 / totSS)*((n - 1) / (n - &numVarsOLS - 1));
   adjRsqCustomOLS = (1 - errSScustomOLS / totSS)*((n - 1) / (n - &numVarsCustom - 1));
