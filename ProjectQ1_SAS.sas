@@ -1,9 +1,9 @@
 FILENAME REFFILE 'C:/Users/Pablo/Desktop/KG6372/cleanData.xlsx';
-PROC IMPORT DATAFILE=REFFILE	
-DBMS=XLSX	
-OUT= DF;	
-GETNAMES=YES;    
-run; 
+PROC IMPORT DATAFILE=REFFILE
+DBMS=XLSX
+OUT= DF;
+GETNAMES=YES;
+run;
 proc print data = DF(obs=10);
 run;
 /* backward elimination - this is now the best model. It reached 0.4500 with interaction between preschool_children and preschool_quota. 0.4618 with more interaction*/
@@ -16,7 +16,7 @@ model PRICE_DOC = id timestamp full_sq life_sq floor max_floor num_room kitch_sq
 / selection=backward( choose=CV stop=CV include = 40) CVdetails;                                                                                                                                                                                                                                               
 run;
 quit;
-/* forward selection - this produces adjusted r squared of 0.4426 with 30 variables included*/ 
+
 title "Forward Selection";
 proc glmselect data=DF 
 testdata=DF
@@ -26,7 +26,7 @@ model PRICE_DOC = id timestamp full_sq life_sq floor max_floor num_room kitch_sq
 / selection=forward( choose=CV stop=CV include = 30) CVdetails;                                                                                                                                                                                                                                               
 run;
 quit;
-/* stepwise regression - this produces adjusted r squared of 0.4426 with 30 variables included*/ 
+
 title "Stepwise Regression";
 proc glmselect data=DF 
 testdata=DF
@@ -45,16 +45,6 @@ proc glmselect data =DF
 /selection = LASSO(choose = CV stop=CV) CVdetails;
 run;
 quit;
-/* start interaction term visuals */
-proc glm data=DF;
-   model price_doc = build_count_wood | build_count_1946_1970 / solution;
-   ods select ParameterEstimates ContourFit;
-   store GLMModel;
-run;
-/* step two (final step) for plotting interaction terms */
-proc plm restore=GLMMODEL noinfo;
- effectplot slicefit(x=build_count_wood sliceby=build_count_1946_1970) / clm;
-run;
 /* The start of our custom model (below) uses interaction terms and all variables suggested by our best OLS linear model (from backward) */
 proc glmselect data=DF 
 testdata=DF                                                                                                                                                                                 
@@ -70,16 +60,191 @@ nomiss
 cov;
 var price_doc id timestamp full_sq life_sq floor max_floor num_room kitch_sq product_type raion_popul green_zone_part indust_part children_preschool preschool_quota children_school healthcare_centers_raion university_top_20_raion shopping_centers_raion office_raion railroad_terminal_raion big_market_raion full_all X0_17_all X16_29_all X0_13_all build_count_block build_count_wood build_count_frame build_count_brick build_count_before_1920 build_count_1921_1945 build_count_1946_1970 build_count_1971_1995 build_count_after_1995 metro_min_avto metro_km_avto school_km green_zone_km industrial_km railroad_station_walk_km ID_railroad_station_walk railroad_station_avto_km railroad_station_avto_min public_transport_station_km public_trans_station_time_walk kremlin_km big_road1_km big_road2_km railroad_km bus_terminal_avto_km big_market_km market_shop_km fitness_km swim_pool_km ice_rink_km stadium_km basketball_km public_healthcare_km university_km workplaces_km shopping_centers_km office_km big_church_km;
 run;
+
 /* then, a variance importance factor matrix to also check collinearity. We don't want anything that falls below a tolerance of 0.1*/
 proc reg data=df; 
 model price_doc = id life_sq floor max_floor num_room kitch_sq product_type green_zone_part indust_part preschool_quota children_school healthcare_centers_raion university_top_20_raion shopping_centers_raion railroad_terminal_raion big_market_raion X0_17_all X16_29_all build_count_block build_count_wood build_count_frame build_count_brick build_count_before_1920 build_count_1921_1945 build_count_1946_1970 build_count_1971_1995 build_count_after_1995 metro_km_avto school_km green_zone_km industrial_km ID_railroad_station_walk railroad_station_avto_km public_transport_station_km public_trans_station_time_walk kremlin_km big_road1_km big_road2_km railroad_km bus_terminal_avto_km big_market_km market_shop_km fitness_km swim_pool_km ice_rink_km stadium_km public_healthcare_km university_km workplaces_km shopping_centers_km office_km big_church_km / vif tol collin;
 run;
+
+/* start interaction term visuals */
+/*****************************************************************************************************************************************/
+/*****************************************************************************************************************************************/
+/*****************************************************************************************************************************************/
+/*************************************************** Plotting Interaction Terms Below ****************************************************/
+/*****************************************************************************************************************************************/
+/*****************************************************************************************************************************************/
+/*****************************************************************************************************************************************/
+ods graphics on;
+proc glm data=DF;
+   model price_doc = X0_17_all | X16_29_all / solution;
+   ods select ParameterEstimates ContourFit;
+   store GLMModel;
+run;
+/* step two (final step) for plotting interaction terms */
+proc plm restore=GLMModel noinfo;
+ effectplot slicefit(x=X0_17_all sliceby=X16_29_all) / clm;
+run;
+proc glm data=DF;
+   model price_doc = children_school | school_km / solution;
+   ods select ParameterEstimates ContourFit;
+   store GLMModel;
+run;
+/* step two (final step) for plotting interaction terms */
+proc plm restore=GLMModel noinfo;
+ effectplot slicefit(x=children_school sliceby=school_km) / clm;
+run;
+proc glm data=DF;
+   model price_doc = build_count_block | build_count_1921_1945 / solution;
+   ods select ParameterEstimates ContourFit;
+   store GLMModel;
+run;
+/* step two (final step) for plotting interaction terms */
+proc plm restore=GLMModel noinfo;
+ effectplot slicefit(x=build_count_block sliceby=build_count_1921_1945) / clm;
+run;
+proc glm data=DF;
+   model price_doc = build_count_block | build_count_1946_1970 / solution;
+   ods select ParameterEstimates ContourFit;
+   store GLMModel;
+run;
+/* step two (final step) for plotting interaction terms */
+proc plm restore=GLMModel noinfo;
+ effectplot slicefit(x=build_count_block sliceby=build_count_1946_1970) / clm;
+run;
+proc glm data=DF;
+   model price_doc = build_count_block | build_count_1971_1995 / solution;
+   ods select ParameterEstimates ContourFit;
+   store GLMModel;
+run;
+/* step two (final step) for plotting interaction terms */
+proc plm restore=GLMModel noinfo;
+ effectplot slicefit(x=build_count_block sliceby=build_count_1971_1995) / clm;
+run;
+proc glm data=DF;
+   model price_doc = build_count_block | build_count_after_1995 / solution;
+   ods select ParameterEstimates ContourFit;
+   store GLMModel;
+run;
+/* step two (final step) for plotting interaction terms */
+proc plm restore=GLMModel noinfo;
+ effectplot slicefit(x=build_count_block sliceby=build_count_after_1995) / clm;
+run;
+proc glm data=DF;
+   model price_doc = build_count_wood | build_count_before_1920 / solution;
+   ods select ParameterEstimates ContourFit;
+   store GLMModel;
+run;
+/* step two (final step) for plotting interaction terms */
+proc plm restore=GLMModel noinfo;
+ effectplot slicefit(x=build_count_wood sliceby=build_count_before_1920) / clm;
+run;
+proc glm data=DF;
+   model price_doc = build_count_wood | build_count_1946_1970 / solution;
+   ods select ParameterEstimates ContourFit;
+   store GLMModel;
+run;
+/* step two (final step) for plotting interaction terms */
+proc plm restore=GLMModel noinfo;
+ effectplot slicefit(x=build_count_wood sliceby=build_count_1946_1970) / clm;
+run;
+proc glm data=DF;
+   model price_doc = build_count_wood | build_count_after_1995 / solution;
+   ods select ParameterEstimates ContourFit;
+   store GLMModel;
+run;
+/* step two (final step) for plotting interaction terms */
+proc plm restore=GLMModel noinfo;
+ effectplot slicefit(x=build_count_wood sliceby=build_count_after_1995) / clm;
+run;
+proc glm data=DF;
+   model price_doc = build_count_frame | build_count_before_1920 / solution;
+   ods select ParameterEstimates ContourFit;
+   store GLMModel;
+run;
+/* step two (final step) for plotting interaction terms */
+proc plm restore=GLMModel noinfo;
+ effectplot slicefit(x=build_count_frame sliceby=build_count_before_1920) / clm;
+run;
+proc glm data=DF;
+   model price_doc = build_count_frame | build_count_1921_1945 / solution;
+   ods select ParameterEstimates ContourFit;
+   store GLMModel;
+run;
+/* step two (final step) for plotting interaction terms */
+proc plm restore=GLMModel noinfo;
+ effectplot slicefit(x=build_count_frame sliceby=build_count_1921_1945) / clm;
+run;
+proc glm data=DF;
+   model price_doc = build_count_frame | build_count_1946_1970 / solution;
+   ods select ParameterEstimates ContourFit;
+   store GLMModel;
+run;
+/* step two (final step) for plotting interaction terms */
+proc plm restore=GLMModel noinfo;
+ effectplot slicefit(x=build_count_frame sliceby=build_count_1946_1970) / clm;
+run;
+proc glm data=DF;
+   model price_doc = build_count_frame | build_count_after_1995 / solution;
+   ods select ParameterEstimates ContourFit;
+   store GLMModel;
+run;
+/* step two (final step) for plotting interaction terms */
+proc plm restore=GLMModel noinfo;
+ effectplot slicefit(x=build_count_frame sliceby=build_count_after_1995) / clm;
+run;
+proc glm data=DF;
+   model price_doc = build_count_brick | build_count_1946_1970 / solution;
+   ods select ParameterEstimates ContourFit;
+   store GLMModel;
+run;
+/* step two (final step) for plotting interaction terms */
+proc plm restore=GLMModel noinfo;
+ effectplot slicefit(x=build_count_brick sliceby=build_count_1946_1970) / clm;
+run;
+proc glm data=DF;
+   model price_doc = build_count_brick | build_count_1971_1995 / solution;
+   ods select ParameterEstimates ContourFit;
+   store GLMModel;
+run;
+/* step two (final step) for plotting interaction terms */
+proc plm restore=GLMModel noinfo;
+ effectplot slicefit(x=build_count_brick sliceby=build_count_1971_1995) / clm;
+run;
+proc glm data=DF;
+   model price_doc = build_count_brick | build_count_after_1995 / solution;
+   ods select ParameterEstimates ContourFit;
+   store GLMModel;
+run;
+/* step two (final step) for plotting interaction terms */
+proc plm restore=GLMModel noinfo;
+ effectplot slicefit(x=build_count_brick sliceby=build_count_after_1995) / clm;
+run;
+proc glm data=DF;
+   model price_doc = office_km | X16_29_all / solution;
+   ods select ParameterEstimates ContourFit;
+   store GLMModel;
+run;
+/* step two (final step) for plotting interaction terms */
+proc plm restore=GLMModel noinfo;
+ effectplot slicefit(x=office_km sliceby=X16_29_all) / clm;
+run;
+ods graphics off;
+/*****************************************************************************************************************************************/
+/*****************************************************************************************************************************************/
+/*****************************************************************************************************************************************/
+/*************************************************** Plotting Interaction Terms Above ****************************************************/
+/*****************************************************************************************************************************************/
+/*****************************************************************************************************************************************/
+/*****************************************************************************************************************************************/
+
 /* After updating using the suggestion from Backward on our interactions, filtering using correlation matrix and dropping using VIF threshold,
-we ended up with the best model below. We had a model with a higher adjusted R-squared value, but as indicated in correlation matrix and from
-the variable inflation factors, we felt that model was at risk of overfitting. To prevent overfitting, we reduced and finalized the model below: */
+we continued removing interaction terms based on interaction plots. The above plots visualize the terms we left in the model below, which is
+our best model. Although we reduced our adjusted R-squared by using the above methods (corr matrix, VIF, interaction plots), we feel this 
+was because the models were overfit. Below, we are confident in the fit.*/
+proc glm data = DF plots = ALL;
 proc glm data = DF plots = (DIAGNOSTICS RESIDUALS);
 class PRODUCT_TYPE;
-model price_doc = id life_sq floor max_floor num_room kitch_sq product_type green_zone_part indust_part preschool_quota children_school healthcare_centers_raion university_top_20_raion shopping_centers_raion railroad_terminal_raion big_market_raion X0_17_all X16_29_all build_count_block build_count_wood build_count_frame build_count_brick build_count_before_1920 build_count_1921_1945 build_count_1946_1970 build_count_1971_1995 build_count_after_1995 metro_km_avto school_km green_zone_km industrial_km ID_railroad_station_walk railroad_station_avto_km public_transport_station_km public_trans_station_time_walk kremlin_km big_road1_km big_road2_km railroad_km bus_terminal_avto_km big_market_km market_shop_km fitness_km swim_pool_km ice_rink_km stadium_km public_healthcare_km university_km workplaces_km shopping_centers_km office_km big_church_km X0_17_all*X16_29_all children_school*school_km build_count_block*build_count_before_1920 build_count_block*build_count_1921_1945 build_count_block*build_count_1946_1970 build_count_block*build_count_1971_1995 build_count_block*build_count_after_1995 build_count_wood*build_count_before_1920 build_count_wood*build_count_1921_1945 build_count_wood*build_count_1946_1970 build_count_wood*build_count_1971_1995 build_count_wood*build_count_after_1995 build_count_frame*build_count_before_1920 build_count_frame*build_count_1921_1945 build_count_frame*build_count_1946_1970 build_count_frame*build_count_1971_1995 build_count_frame*build_count_after_1995 build_count_brick*build_count_before_1920 build_count_brick*build_count_1921_1945 build_count_brick*build_count_1946_1970 build_count_brick*build_count_1971_1995 build_count_brick*build_count_after_1995 X16_29_all*fitness_km X0_17_all*swim_pool_km X0_17_all*ice_rink_km office_km*X16_29_all;
+model price_doc = id life_sq floor max_floor num_room kitch_sq product_type green_zone_part indust_part preschool_quota children_school healthcare_centers_raion university_top_20_raion shopping_centers_raion railroad_terminal_raion big_market_raion X0_17_all X16_29_all build_count_block build_count_wood build_count_frame build_count_brick build_count_before_1920 build_count_1921_1945 build_count_1946_1970 build_count_1971_1995 build_count_after_1995 metro_km_avto school_km green_zone_km industrial_km ID_railroad_station_walk railroad_station_avto_km public_transport_station_km public_trans_station_time_walk kremlin_km big_road1_km big_road2_km railroad_km bus_terminal_avto_km big_market_km market_shop_km fitness_km swim_pool_km ice_rink_km stadium_km public_healthcare_km university_km workplaces_km shopping_centers_km office_km big_church_km X0_17_all*X16_29_all children_school*school_km build_count_block*build_count_1921_1945 build_count_block*build_count_1946_1970 build_count_block*build_count_1971_1995 build_count_block*build_count_after_1995 build_count_wood*build_count_before_1920 build_count_wood*build_count_1946_1970 build_count_wood*build_count_after_1995 build_count_frame*build_count_before_1920 build_count_frame*build_count_1921_1945 build_count_frame*build_count_1946_1970 build_count_frame*build_count_after_1995 build_count_brick*build_count_1946_1970 build_count_brick*build_count_1971_1995 build_count_brick*build_count_after_1995 office_km*X16_29_all;
 run;
 
 /*****************************************************************************************************************************************/
@@ -99,8 +264,8 @@ run;
 %let numVarsOLSFwd = 34; * we may want to use these in the future to compare, but for now, we just need four models (same for OLSVarsFwd below);
 %let OLSVarsFwd = id timestamp full_sq life_sq floor max_floor num_room kitch_sq product_type raion_popul green_zone_part indust_part children_preschool preschool_quota children_school healthcare_centers_raion university_top_20_raion shopping_centers_raion office_raion railroad_terminal_raion big_market_raion full_all X0_6_all X7_14_all X0_17_all X16_29_all X0_13_all build_count_block build_count_wood build_count_frame green_zone_km ID_railroad_station_walk kremlin_km swim_pool_km;
 /* below we are setting the variables for the SQL we will eventually use for our custom model */
-%let numVarsCustom = 78;
-%let customOLSVars = id life_sq floor max_floor num_room kitch_sq product_type green_zone_part indust_part preschool_quota children_school healthcare_centers_raion university_top_20_raion shopping_centers_raion railroad_terminal_raion big_market_raion X0_17_all X16_29_all build_count_block build_count_wood build_count_frame build_count_brick build_count_before_1920 build_count_1921_1945 build_count_1946_1970 build_count_1971_1995 build_count_after_1995 metro_km_avto school_km green_zone_km industrial_km ID_railroad_station_walk railroad_station_avto_km public_transport_station_km public_trans_station_time_walk kremlin_km big_road1_km big_road2_km railroad_km bus_terminal_avto_km big_market_km market_shop_km fitness_km swim_pool_km ice_rink_km stadium_km public_healthcare_km university_km workplaces_km shopping_centers_km office_km big_church_km X0_17_all*X16_29_all children_school*school_km build_count_block*build_count_before_1920 build_count_block*build_count_1921_1945 build_count_block*build_count_1946_1970 build_count_block*build_count_1971_1995 build_count_block*build_count_after_1995 build_count_wood*build_count_before_1920 build_count_wood*build_count_1921_1945 build_count_wood*build_count_1946_1970 build_count_wood*build_count_1971_1995 build_count_wood*build_count_after_1995 build_count_frame*build_count_before_1920 build_count_frame*build_count_1921_1945 build_count_frame*build_count_1946_1970 build_count_frame*build_count_1971_1995 build_count_frame*build_count_after_1995 build_count_brick*build_count_before_1920 build_count_brick*build_count_1921_1945 build_count_brick*build_count_1946_1970 build_count_brick*build_count_1971_1995 build_count_brick*build_count_after_1995 X16_29_all*fitness_km X0_17_all*swim_pool_km X0_17_all*ice_rink_km office_km*X16_29_all;
+%let numVarsCustom = 69;
+%let customOLSVars = id life_sq floor max_floor num_room kitch_sq product_type green_zone_part indust_part preschool_quota children_school healthcare_centers_raion university_top_20_raion shopping_centers_raion railroad_terminal_raion big_market_raion X0_17_all X16_29_all build_count_block build_count_wood build_count_frame build_count_brick build_count_before_1920 build_count_1921_1945 build_count_1946_1970 build_count_1971_1995 build_count_after_1995 metro_km_avto school_km green_zone_km industrial_km ID_railroad_station_walk railroad_station_avto_km public_transport_station_km public_trans_station_time_walk kremlin_km big_road1_km big_road2_km railroad_km bus_terminal_avto_km big_market_km market_shop_km fitness_km swim_pool_km ice_rink_km stadium_km public_healthcare_km university_km workplaces_km shopping_centers_km office_km big_church_km X0_17_all*X16_29_all children_school*school_km build_count_block*build_count_1921_1945 build_count_block*build_count_1946_1970 build_count_block*build_count_1971_1995 build_count_block*build_count_after_1995 build_count_wood*build_count_before_1920 build_count_wood*build_count_1946_1970 build_count_wood*build_count_after_1995 build_count_frame*build_count_before_1920 build_count_frame*build_count_1921_1945 build_count_frame*build_count_1946_1970 build_count_frame*build_count_after_1995 build_count_brick*build_count_1946_1970 build_count_brick*build_count_1971_1995 build_count_brick*build_count_after_1995 office_km*X16_29_all;
 /* dependent variable is price_doc */
 %let depVar = price_doc;
 
