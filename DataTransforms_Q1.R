@@ -27,32 +27,11 @@ names(df)[37] <- "build_count_1946_1970"
 names(df)[38] <- "build_count_1971_1995"
 names(df)[54] <- "public_trans_station_time_walk"
 
-##############df <- df %>% mutate(timestamp = as.Date(timestamp, origin="1899-12-30"))
-##############tryFormats = c("%Y-%m-%d", "%Y/%m/%d")
-
-##############timestamp2 <- df$timestamp
-##############df <- data.frame(timestamp2, df)
-
-##############df <- df %>% mutate(timestamp = as.Date(timestamp, origin="1899-12-30"))
-##############tryFormats = c("%Y-%m-%d", "%Y/%m/%d")
-
-##############df <- df %>% separate(timestamp2, sep="-", into = c("year", "month", "day"))
-
-#names(df$build_count_1921.1945)[36] <- "build_count_1921_1945"
-#names(df$build_count_1946.1970)[37] <- "build_count_1946_1970"
-#names(df$build_count_1971.1995)[38] <- "build_count_1971_1995"
-#names(df$public_transport_station_min_walk)[54] <- "public_trans_station_time_walk"
-
-
-#$colnames(df) <- c('year', 'month', 'day', 'id', 'timestamp', 'full_sq', 'life_sq', 'floor', 'max_floor', 'num_room', 'kitch_sq', 'product_type', 'raion_popul', 'green_zone_part', 'indust_part', 'children_preschool', 'preschool_quota', 'children_school', 'healthcare_centers_raion', 'university_top_20_raion', 'shopping_centers_raion', 'office_raion', 'railroad_terminal_raion', 'big_market_raion', 'full_all', 'X0_6_all', 'X7_14_all', 'X0_17_all', 'X16_29_all', 'X0_13_all', 'build_count_block', 'build_count_wood', 'build_count_frame', 'build_count_brick', 'build_count_before_1920', 'build_count_1921_1945', 'build_count_1946_1970', 'build_count_1971_1995', 'build_count_after_1995', 'metro_min_avto', 'metro_km_avto', 'metro_min_walk', 'metro_km_walk', 'school_km', 'park_km', 'green_zone_km', 'industrial_km', 'railroad_station_walk_km', 'railroad_station_walk_min', 'ID_railroad_station_walk', 'railroad_station_avto_km', 'railroad_station_avto_min', 'public_transport_station_km', 'public_trans_station_time_walk', 'kremlin_km', 'big_road1_km', 'big_road2_km', 'railroad_km', 'bus_terminal_avto_km', 'big_market_km', 'market_shop_km', 'fitness_km', 'swim_pool_km', 'ice_rink_km', 'stadium_km', 'basketball_km', 'public_healthcare_km', 'university_km', 'workplaces_km', 'shopping_centers_km', 'office_km', 'big_church_km', 'price_doc')
-
 ########## Floor
 #df$floor <- df$floor %>% replace_na(0)
 df$floor[is.na(df$floor)] <- 0
 df$floor <- log(df$floor+1)
 ##########
-
-#df$product_type <- as.factor(df$product_type)
 
 ##########
 #df[which(df$year == 2011),]
@@ -177,3 +156,56 @@ df <- df %>% mutate_if(is.integer, as.numeric) %>% mutate_if(is.character, as.fa
 #df <- df[-c(2958, 1192, 2998,134, 3156, 1452, 2994, 3151, 98),]
 
 write.csv(df,"cleanData.csv", row.names = F)
+setwd("c:/users/pablo/desktop/kg6372")
+df <- read.csv("cleanData.csv")
+
+######################################################################################################## ignore the below
+skim(df)
+df2 <- df
+df2$life_sq <- log(df$full_sq + 1)
+df2$basketball_km <- log(df$basketball_km + 1)
+df2$fitness_km <- log(df$fitness_km + 1)
+df2$green_zone_km <- log(df$green_zone_km + 1)
+df2$indust_part <- log(df$indust_part + 1)
+df2$kitch_sq <- log(df$kitch_sq + 1)
+df2$life_Sq <- log(df$life_Sq + 1)
+df2$market_shop_km <- log(df$market_shop_km + 1)
+df2$max_floor <- log(df$max_floor + 1)
+df2$metro_km_avto <- log(df$metro_km_avto + 1)
+df2$metro_km_walk <- log(df$metro_km_walk + 1)
+df2$metro_min_avto <- log(df$metro_min_avto + 1)
+df2$metro_min_walk <- log(df$metro_min_walk + 1)
+df2$num_room <- log(df$num_room + 1)
+df2$office_km <- log(df$office_km + 1)
+df2$park_km <- log(df$park_km + 1)
+df2$price_doc <- log(df$price_doc + 1)
+df2$public_healthcare_km <- log(df$public_healthcare_km + 1)
+df2$public_trans_station_time_walk <- log(df$public_trans_station_time_walk + 1)
+df2$public_transport_station_km <- log(df$public_transport_station_km + 1)
+df2$railroad_km <- log(df$railroad_km + 1)
+df2$school_km <- log(df$school_km + 1)
+df2$shopping_centers_km <- log(df$shopping_centers_km + 1)
+skim(df2)
+######################################################################################################## ignore the above
+
+lm.Model <- lm(log(price_doc) ~ id + life_sq + floor + max_floor + num_room + kitch_sq + product_type + green_zone_part + indust_part + preschool_quota + children_school + healthcare_centers_raion + 
+                       university_top_20_raion + shopping_centers_raion + railroad_terminal_raion + big_market_raion + X0_17_all + X16_29_all + build_count_block + build_count_wood + build_count_frame + 
+                       build_count_brick + build_count_before_1920 + build_count_1921_1945 + build_count_1946_1970 + build_count_1971_1995 + build_count_after_1995 + metro_km_avto + school_km + 
+                       green_zone_km + industrial_km + ID_railroad_station_walk + railroad_station_avto_km + public_transport_station_km + public_trans_station_time_walk + kremlin_km + big_road1_km + 
+                       big_road2_km + railroad_km + bus_terminal_avto_km + big_market_km + market_shop_km + fitness_km + swim_pool_km + ice_rink_km + stadium_km + public_healthcare_km + university_km + 
+                       workplaces_km + shopping_centers_km + office_km + big_church_km + X0_17_all*X16_29_all + children_school*school_km + build_count_block*build_count_1921_1945 + 
+                       build_count_block*build_count_1946_1970 + build_count_block*build_count_1971_1995 + build_count_block*build_count_after_1995 + build_count_wood*build_count_before_1920 + 
+                       build_count_wood*build_count_1946_1970 + build_count_wood*build_count_after_1995 + build_count_frame*build_count_before_1920 + build_count_frame*build_count_1921_1945 + 
+                       build_count_frame*build_count_1946_1970 + build_count_frame*build_count_after_1995 + build_count_brick*build_count_1946_1970 + build_count_brick*build_count_1971_1995 + 
+                       build_count_brick*build_count_after_1995 + office_km*X16_29_all, data=df)
+
+write.csv(df2,"C:\Users\Pablo\Desktop\KG6372/dirtData.csv")
+par(mfrow=c(2,2))
+plot(lm.Model)
+
+# Based on the suggested model above from SAS, we dropped observation 12946 due to it's high leverage and being an extreme outlier
+df <- df[-c(12946, 16104,8678, 18323, 8924, 6425, 9728),]
+nrow(df)
+
+par(mfrow=c(2,2))
+plot(lm.Model)
