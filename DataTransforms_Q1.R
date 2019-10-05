@@ -156,7 +156,7 @@ df <- df %>% mutate_if(is.integer, as.numeric) %>% mutate_if(is.character, as.fa
 #df <- df[-c(2958, 1192, 2998,134, 3156, 1452, 2994, 3151, 98),]
 
 write.csv(df,"cleanData.csv", row.names = F)
-setwd("c:/users/pablo/desktop/kg6372")
+
 df <- read.csv("cleanData.csv")
 
 ######################################################################################################## ignore the below
@@ -199,7 +199,6 @@ lm.Model <- lm(log(price_doc) ~ id + life_sq + floor + max_floor + num_room + ki
                        build_count_frame*build_count_1946_1970 + build_count_frame*build_count_after_1995 + build_count_brick*build_count_1946_1970 + build_count_brick*build_count_1971_1995 + 
                        build_count_brick*build_count_after_1995 + office_km*X16_29_all, data=df)
 
-write.csv(df2,"C:\Users\Pablo\Desktop\KG6372/dirtData.csv")
 par(mfrow=c(2,2))
 plot(lm.Model)
 
@@ -209,3 +208,6 @@ nrow(df)
 
 par(mfrow=c(2,2))
 plot(lm.Model)
+
+#updating with removed variables
+write.csv(df,"cleanData.csv", row.names = F)
