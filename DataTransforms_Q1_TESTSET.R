@@ -20,12 +20,12 @@ p_load(lmtest
        ,xlsx)
 
 #format dates:
-df <- read.csv("./modelingData.csv",  header=T, sep=",", strip.white=T, stringsAsFactors = F)
+df <- Test
 
-names(df)[36] <- "build_count_1921_1945"
-names(df)[37] <- "build_count_1946_1970"
-names(df)[38] <- "build_count_1971_1995"
-names(df)[54] <- "public_trans_station_time_walk"
+names(df)[35] <- "build_count_1921_1945"
+names(df)[36] <- "build_count_1946_1970"
+names(df)[37] <- "build_count_1971_1995"
+names(df)[53] <- "public_trans_station_time_walk"
 
 ##############df <- df %>% mutate(timestamp = as.Date(timestamp, origin="1899-12-30"))
 ##############tryFormats = c("%Y-%m-%d", "%Y/%m/%d")
@@ -61,7 +61,7 @@ df2.maxfl <- df[which(!is.na(df$max_floor)),]
 maxfl.Mean <- data.frame(df2.maxfl$max_floor/df2.maxfl$full_sq)
 colnames(maxfl.Mean) <- "percentofFloor"
 maxflMultiplier <- mean(head(maxfl.Mean$percentofFloor,7000))
-df[which(is.na(df$max_floor)),6] <- df[which(is.na(df$max_floor)),3]*maxflMultiplier
+df[which(is.na(df$max_floor)),7] <- df[which(is.na(df$max_floor)),4]*maxflMultiplier
 ##########
 #df[which(df$year == 2011),]
 ########## life sq
@@ -69,7 +69,7 @@ df2.lifesq <- df[which(!is.na(df$life_sq)),]
 life.Mean <- data.frame(df2.lifesq$life_sq/df2.lifesq$full_sq)
 colnames(life.Mean) <- "percentofFull"
 lifesqMultiplier <- mean(head(life.Mean$percentofFull,11000))
-df[which(is.na(df$life_sq)),4] <- df[which(is.na(df$life_sq)),3]*lifesqMultiplier
+df[which(is.na(df$life_sq)),5] <- df[which(is.na(df$life_sq)),4]*lifesqMultiplier
 df$life_sq <- as.numeric(df$life_sq)
 dishonestLivingSpace <- (df$life_sq - df$full_sq)
 df <- data.frame(dishonestLivingSpace, df)
@@ -82,7 +82,7 @@ df2.kitchsq <- df[which(!is.na(df$kitch_sq)),]
 kitch.Mean <- data.frame(df2.kitchsq$kitch_sq/df2.kitchsq$full_sq)
 colnames(kitch.Mean) <- "percentofFullkitch"
 kitchsqMultiplier <- mean(head(kitch.Mean$percentofFullkitch,7000))
-df[which(is.na(df$kitch_sq)),10] <- df[which(is.na(df$kitch_sq)),3]*kitchsqMultiplier
+df[which(is.na(df$kitch_sq)),9] <- df[which(is.na(df$kitch_sq)),4]*kitchsqMultiplier
 df$kitch_sq[is.na(df$kitch_sq)] <- 0
 dishonestKitchens <- (df$kitch_sq - df$full_sq)
 df <- data.frame(dishonestKitchens, df)
@@ -99,7 +99,7 @@ numRm.Mean <- as.numeric(df2.numRm$num_room)/as.numeric(df2.numRm$full_sq)
 class(numRm.Mean) 
 #numRm.Mean$percentofFullrm <- as.numeric(percentofFullrm)
 numRmMultiplier <- mean(head(numRm.Mean,7000))
-df[which(is.na(df$num_room)),9] <- as.integer(df[which(is.na(df$num_room)),3])*numRmMultiplier
+df[which(is.na(df$num_room)),8] <- as.integer(df[which(is.na(df$num_room)),4])*numRmMultiplier
 ##################################################################################################df <- df[which(df$num_room < 30),]
 ##########
 #df[which(df$year == 2011),]
@@ -108,7 +108,7 @@ df.preK.no.NA <- df[which(!is.na(df$preschool_quota)),]
 preK.Mean <- data.frame(df.preK.no.NA$preschool_quota/df.preK.no.NA$X0_6_all)
 colnames(preK.Mean) <- "percentofFloor"
 preKquotaMultiplier <- mean(head(preK.Mean$percentofFloor,5000))
-df[which(is.na(df$preschool_quota)),16] <- df[which(is.na(df$preschool_quota)),26]*preKquotaMultiplier
+df[which(is.na(df$preschool_quota)),15] <- df[which(is.na(df$preschool_quota)),28]*preKquotaMultiplier
 df$preschool_quota <- sqrt(df$preschool_quota)
 df$preschool_quota[is.na(df$preschool_quota)] <- 1
 ##########
@@ -176,4 +176,4 @@ df <- df %>% mutate_if(is.integer, as.numeric) %>% mutate_if(is.character, as.fa
 
 #df <- df[-c(2958, 1192, 2998,134, 3156, 1452, 2994, 3151, 98),]
 
-write.csv(df,"cleanData.csv", row.names = F)
+write.csv(df,"cleanTestData.csv", row.names = F)
