@@ -157,8 +157,7 @@ df <- df %>% mutate_if(is.integer, as.numeric) %>% mutate_if(is.character, as.fa
 
 write.csv(df,"cleanData.csv", row.names = F)
 
-df <- read.csv("cleanData.csv")
-
+df <- read.csv("cleanData.csv", header = T)
 ######################################################################################################## ignore the below
 skim(df)
 df2 <- df
@@ -199,15 +198,31 @@ lm.Model <- lm(log(price_doc) ~ id + life_sq + floor + max_floor + num_room + ki
                        build_count_frame*build_count_1946_1970 + build_count_frame*build_count_after_1995 + build_count_brick*build_count_1946_1970 + build_count_brick*build_count_1971_1995 + 
                        build_count_brick*build_count_after_1995 + office_km*X16_29_all, data=df)
 
+# viewing diagnostics residuals:
 par(mfrow=c(2,2))
 plot(lm.Model)
 
-# Based on the suggested model above from SAS, we dropped observation 12946 due to it's high leverage and being an extreme outlier
+# Based on the suggested model above from SAS, we dropped outlier observations:
 df <- df[-c(12946, 16104,8678, 18323, 8924, 6425, 9728),]
-nrow(df)
 
+
+# After updating to remove the outliers, we re-ran the model:
+lm.Model <- lm(log(price_doc) ~ id + life_sq + floor + max_floor + num_room + kitch_sq + product_type + green_zone_part + indust_part + preschool_quota + children_school + healthcare_centers_raion + 
+                       university_top_20_raion + shopping_centers_raion + railroad_terminal_raion + big_market_raion + X0_17_all + X16_29_all + build_count_block + build_count_wood + build_count_frame + 
+                       build_count_brick + build_count_before_1920 + build_count_1921_1945 + build_count_1946_1970 + build_count_1971_1995 + build_count_after_1995 + metro_km_avto + school_km + 
+                       green_zone_km + industrial_km + ID_railroad_station_walk + railroad_station_avto_km + public_transport_station_km + public_trans_station_time_walk + kremlin_km + big_road1_km + 
+                       big_road2_km + railroad_km + bus_terminal_avto_km + big_market_km + market_shop_km + fitness_km + swim_pool_km + ice_rink_km + stadium_km + public_healthcare_km + university_km + 
+                       workplaces_km + shopping_centers_km + office_km + big_church_km + X0_17_all*X16_29_all + children_school*school_km + build_count_block*build_count_1921_1945 + 
+                       build_count_block*build_count_1946_1970 + build_count_block*build_count_1971_1995 + build_count_block*build_count_after_1995 + build_count_wood*build_count_before_1920 + 
+                       build_count_wood*build_count_1946_1970 + build_count_wood*build_count_after_1995 + build_count_frame*build_count_before_1920 + build_count_frame*build_count_1921_1945 + 
+                       build_count_frame*build_count_1946_1970 + build_count_frame*build_count_after_1995 + build_count_brick*build_count_1946_1970 + build_count_brick*build_count_1971_1995 + 
+                       build_count_brick*build_count_after_1995 + office_km*X16_29_all, data=df)
+
+# viewing post-outlier removal diagnostics residuals:
 par(mfrow=c(2,2))
 plot(lm.Model)
+# As indicated by the residuals diagnostics, our model is better, with the exception of issues with independence and non-constant
+# variance from some of the imputations. This is also causing a left-skew in the QQ plot.
 
 #updating with removed variables
 write.csv(df,"cleanData.csv", row.names = F)
