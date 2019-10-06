@@ -6,6 +6,13 @@ GETNAMES=YES;
 run;
 proc print data = DF(obs=10);
 run;
+/*****************************************************************************************************************************************/
+/*****************************************************************************************************************************************/
+/*****************************************************************************************************************************************/
+/**************************************************** Section for Project Task One *******************************************************/
+/*****************************************************************************************************************************************/
+/*****************************************************************************************************************************************/
+/*****************************************************************************************************************************************/
 /* backward elimination - this is now the best model. It reached 0.4500 with interaction between preschool_children and preschool_quota. 0.4618 with more interaction*/
 title "Backward Elimination";
 proc glmselect data=DF 
@@ -236,11 +243,10 @@ we continued removing interaction terms based on interaction plots. The above pl
 our best model. Although we reduced our adjusted R-squared by using the above methods (corr matrix, VIF, interaction plots), we feel this 
 was because the models were overfit. Below, we are confident in the fit.*/
 ods graphics on;
-proc glm data = DF plots(unpack) = ALL;
 proc glm data = DF plots(unpack) = (DIAGNOSTICS RESIDUALS);
 model price_doc = id life_sq floor max_floor num_room kitch_sq product_type green_zone_part indust_part preschool_quota children_school healthcare_centers_raion university_top_20_raion shopping_centers_raion railroad_terminal_raion big_market_raion X0_17_all X16_29_all build_count_block build_count_wood build_count_frame build_count_brick build_count_before_1920 build_count_1921_1945 build_count_1946_1970 build_count_1971_1995 build_count_after_1995 metro_km_avto school_km green_zone_km industrial_km ID_railroad_station_walk railroad_station_avto_km public_transport_station_km public_trans_station_time_walk kremlin_km big_road1_km big_road2_km railroad_km bus_terminal_avto_km big_market_km market_shop_km fitness_km swim_pool_km ice_rink_km stadium_km public_healthcare_km university_km workplaces_km shopping_centers_km office_km big_church_km X0_17_all*X16_29_all children_school*school_km build_count_block*build_count_1921_1945 build_count_block*build_count_1946_1970 build_count_block*build_count_1971_1995 build_count_block*build_count_after_1995 build_count_wood*build_count_before_1920 build_count_wood*build_count_1946_1970 build_count_wood*build_count_after_1995 build_count_frame*build_count_before_1920 build_count_frame*build_count_1921_1945 build_count_frame*build_count_1946_1970 build_count_frame*build_count_after_1995 build_count_brick*build_count_1946_1970 build_count_brick*build_count_1971_1995 build_count_brick*build_count_after_1995 office_km*X16_29_all / cli;
 run;
-
+ods graphics off;
 /*****************************************************************************************************************************************/
 /*****************************************************************************************************************************************/
 /*********************************************** After updating model using OLS **********************************************************/
@@ -263,12 +269,15 @@ run;
 /* dependent variable is price_doc */
 %let depVar = price_doc;
 
+/***********************************************************************************************************/
+/***********************************************************************************************************/
+						/********* External Cross-Validation Steps Here *********/
 data DF; 
 set &inputData;
 randNumber = ranuni(11);
 if _n_ < &numObs;
 run;
-/* build our training data set for external cross-validation. We will train in 25% blocks, test on 75%. We feel this is reasonable. 
+/* build training data set for external cross-validation. We will train in 25% blocks, test on 75%. We feel this is reasonable. 
    75% for training */
 data dfTrain;
 set &inputData;
@@ -296,7 +305,7 @@ title "Selection Method Backward Elimination Using LASSO Variables and OLS";
 proc glmselect data=dfTrain testdata = dfTest
 			   plots(stepAxis=number)=(criterionPanel ASEPlot CRITERIONPANEL);
 model &depVar = &lassoVars
-		   / selection=backward( choose=adjrsq stop=adjrsq include = &numVarsLASSO ) CVdetails;
+		   / selection=backward( choose=CV stop=CV include = &numVarsLASSO ) CVdetails;
 		   score data=dfTest out=scoredOLSLASSO;
 run;
 quit;
@@ -307,21 +316,78 @@ title "Selection Method Backward Elimination Using OLS Variables and OLS";
 proc glmselect data=dfTrain testdata = dfTest
 			   plots(stepAxis=number)=(criterionPanel ASEPlot CRITERIONPANEL);
 model &depVar = &OLSVars
-		   / selection=backward( choose=adjrsq stop=adjrsq include = &numVarsOLS ) CVdetails;
+		   / selection=backward( choose=CV stop=CV include = &numVarsOLS ) CVdetails; /*default to 5 folds*/
 		   score data=dfTest out=scoredOLS;
 run;
 quit;
+ods graphics off;
 
 ods graphics on;/* This sets up the SQL for our custom model cross validation */
 title "Selection Method Custom Combined Backward Elimination, Corr Matrix, VIF Using OLS Variables";
 proc glmselect data=dfTrain testdata = dfTest
 			   plots(stepAxis=number)=(criterionPanel ASEPlot CRITERIONPANEL);
 model &depVar = &customOLSVars
-		   / selection=backward( choose=adjrsq stop=adjrsq include = &numVarsCustom ) CVdetails;
+		   / selection=backward( choose=CV stop=CV include = &numVarsCustom ) CVdetails;
 		   score data=dfTest out=scoredOLSvarsCustom;
 run;
 quit;
 ods graphics off;
+/***********************************************************************************************************/
+/***********************************************************************************************************/
+/******************************** End of External Cross-Validation *****************************************/
+/***********************************************************************************************************/
+/***********************************************************************************************************/
+
+					  /********* Internal Cross-Validation Steps Here *********/
+ods graphics on;
+title "Selection Method LASSO Using LASSO Variables and Cross Validation";
+proc glmselect data=df
+			   seed=1 plots(stepAxis=number)=(criterionPanel ASEPlot CRITERIONPANEL);
+model &depVar = &lassoVars
+		   / selection=LASSO( choose=CV stop=CV ) CVdetails;
+		   score data=df out=scoredLASSO;
+run;
+quit;
+ods graphics off;
+
+ods graphics on;
+title "Selection Method Backward Elimination Using LASSO Variables and OLS";
+proc glmselect data=df
+			   plots(stepAxis=number)=(criterionPanel ASEPlot CRITERIONPANEL);
+model &depVar = &lassoVars
+		   / selection=backward( choose=CV stop=CV include = &numVarsLASSO ) CVdetails;
+		   score data=df out=scoredOLSLASSO;
+run;
+quit;
+ods graphics off;
+
+ods graphics on;
+title "Selection Method Backward Elimination Using OLS Variables and OLS";
+proc glmselect data=df
+			   plots(stepAxis=number)=(criterionPanel ASEPlot CRITERIONPANEL);
+model &depVar = &OLSVars
+		   / selection=backward( choose=CV stop=CV include = &numVarsOLS ) CVdetails; /*default to 5 folds*/
+		   score data=df out=scoredOLS;
+run;
+quit;
+ods graphics off;
+
+ods graphics on;/* This sets up the SQL for our custom model cross validation */
+title "Selection Method Custom Combined Backward Elimination, Corr Matrix, VIF Using OLS Variables";
+proc glmselect data=df
+			   plots(stepAxis=number)=(criterionPanel ASEPlot CRITERIONPANEL);
+model &depVar = &customOLSVars
+		   / selection=backward( choose=CV stop=CV include = &numVarsCustom ) CVdetails;
+		   score data=df out=scoredOLSvarsCustom;
+run;
+quit;
+ods graphics off;
+/***********************************************************************************************************/
+/***********************************************************************************************************/
+/******************************** End of Internal Cross-Validation *****************************************/
+/***********************************************************************************************************/
+/***********************************************************************************************************/
+
 
 /* Calculate Sums of Squares from LASSO and OLS outputs */
 proc sql;
@@ -359,54 +425,3 @@ merge fitLasso fitOLSLasso fitOLS customModel;
   title "Goodness of Fit Measures Using Test Data - All Models (LASSO with LASSO Vars, OLS with LASSO Vars, OLS, and Custom OLS)";
   proc print data = allMeasures;
   run;
-/*****************************************************************************************************************************************/
-/*****************************************************************************************************************************************/
-/*****************************************************************************************************************************************/
-/******************************************************* DO NOT ENTER THE DANGER ZONE ****************************************************/
-/*********************************************************** DANGER: KEEP OUT ************************************************************/
-/************************************************************ BEWARE OF DOG **************************************************************/
-/*************************************************************** AND CAT *****************************************************************/
-/******************************************************* AND OF OVER-FIT MODELS **********************************************************/
-/*****************************************************************************************************************************************/
-/*****************************************************************************************************************************************/
-/*****************************************************************************************************************************************/
-
-/*****************************************************************************************************************************************/
-/*****************************************************************************************************************************************/
-/*****************************************************************************************************************************************/
-/*************************************************** Plotting Interaction Terms Below ****************************************************/
-/*****************************************************************************************************************************************/
-/*****************************************************************************************************************************************/
-/*****************************************************************************************************************************************/
-
-/*Prediction******************************************************************************************************************************/
-FILENAME REFFILE '/home/u38493344/Applied Stats/Project 1/cleanTestData2.csv';
-PROC IMPORT DATAFILE=REFFILE
-	DBMS=csv
-	OUT=cleanTest2;
-	getnames = yes;
-RUN;
-proc print data = cleanTest2(obs=10);
-run; 
-
-data forPred1;
-set DF cleanTest2;
-run;
-
-proc print data = forPred1(obs=10);
-run; 
-
-/******************************************************************************/
-/******************************************************************************/
-/*Best Model - Backwards with Interactions*/
-proc glm data = forPred1 plots = ALL;
-class PRODUCT_TYPE;
-model price_doc = id life_sq floor max_floor num_room kitch_sq product_type green_zone_part indust_part preschool_quota children_school healthcare_centers_raion university_top_20_raion shopping_centers_raion railroad_terminal_raion big_market_raion X0_17_all X16_29_all build_count_block build_count_wood build_count_frame build_count_brick build_count_before_1920 build_count_1921_1945 build_count_1946_1970 build_count_1971_1995 build_count_after_1995 metro_km_avto school_km green_zone_km industrial_km ID_railroad_station_walk railroad_station_avto_km public_transport_station_km public_trans_station_time_walk kremlin_km big_road1_km big_road2_km railroad_km bus_terminal_avto_km big_market_km market_shop_km fitness_km swim_pool_km ice_rink_km stadium_km public_healthcare_km university_km workplaces_km shopping_centers_km office_km big_church_km X0_17_all*X16_29_all children_school*school_km build_count_block*build_count_1921_1945 build_count_block*build_count_1946_1970 build_count_block*build_count_1971_1995 build_count_block*build_count_after_1995 build_count_wood*build_count_before_1920 build_count_wood*build_count_1946_1970 build_count_wood*build_count_after_1995 build_count_frame*build_count_before_1920 build_count_frame*build_count_1921_1945 build_count_frame*build_count_1946_1970 build_count_frame*build_count_after_1995 build_count_brick*build_count_1946_1970 build_count_brick*build_count_1971_1995 build_count_brick*build_count_after_1995 office_km*X16_29_all;
-output out = predsMLR p = prediction lcl = lower ucl = upper;
-run;
-proc print data = predsMLR(obs=10);
-run;
-
-proc export data = predsMLR
-dbms = csv outfile="/home/u38493344/Applied Stats/Project 1/mlrPredictions.csv" replace;
-run;
