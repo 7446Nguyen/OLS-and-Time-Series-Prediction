@@ -104,15 +104,6 @@ df[which(is.na(df$num_room)),9] <- as.integer(df[which(is.na(df$num_room)),3])*n
 ##################################################################################################
 ##########
 
-########## preschool quota
-df.preK.no.NA <- df[which(!is.na(df$preschool_quota)),]
-preK.Mean <- data.frame(df.preK.no.NA$preschool_quota/df.preK.no.NA$X0_6_all)
-colnames(preK.Mean) <- "percentofFloor"
-preKquotaMultiplier <- mean(head(preK.Mean$percentofFloor,5000))
-df[which(is.na(df$preschool_quota)),16] <- df[which(is.na(df$preschool_quota)),27]*preKquotaMultiplier
-df$preschool_quota <- sqrt(df$preschool_quota)
-df$preschool_quota[is.na(df$preschool_quota)] <- 1
-##########
 #df[which(df$year == 2011),]
 ########## build year
 
